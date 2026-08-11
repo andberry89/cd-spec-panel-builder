@@ -1,4 +1,46 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref } from 'vue'
+import VehicleForm from './components/VehicleForm.vue'
+import type { Panel } from './types/panel'
+import type { SectionKey, VehicleSection } from './types/vehicle'
+
+const createSection = (): VehicleSection => ({
+  enabled: true,
+  fields: [],
+})
+
+const createSections = (): Record<SectionKey, VehicleSection> => ({
+  price: createSection(),
+  powertrain: createSection(),
+  chassis: createSection(),
+  dimensions: createSection(),
+  testing: createSection(),
+  interiorSound: createSection(),
+  fuelEconomy: createSection(),
+})
+
+const panel = ref<Panel>({
+  vehicleOne: {
+    id: 'vehicle-one',
+    identity: {
+      year: '2026',
+      make: 'Ford',
+      model: 'Mustang',
+    },
+    powertrainType: 'combustion',
+    trims: [
+      {
+        id: 'trim-one',
+        name: 'GT',
+        fields: [],
+      },
+    ],
+    sections: createSections(),
+  },
+  testingExplainedEnabled: false,
+  generatedHtml: '',
+})
+</script>
 
 <template>
   <main class="app-shell">
@@ -18,14 +60,10 @@
             <h2>Vehicle 1</h2>
           </div>
 
-          <span class="status-badge">Not started</span>
+          <span class="status-badge">In progress</span>
         </div>
 
-        <p class="placeholder-text">
-          Vehicle identity, trims, sections, and powertrain fields will be added here.
-        </p>
-
-        <button type="button" disabled>Vehicle form coming next</button>
+        <VehicleForm v-model="panel.vehicleOne" />
       </article>
 
       <aside class="preview-card">
