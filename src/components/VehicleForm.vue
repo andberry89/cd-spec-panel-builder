@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import SpecFieldForm from './SpecFieldForm.vue'
 import TrimForm from './TrimForm.vue'
-import type { PowertrainType, SectionKey, Trim, Vehicle } from '../types/vehicle'
+import type { PowertrainType, SectionKey, SpecField, Trim, Vehicle } from '../types/vehicle'
 
 const props = defineProps<{
   modelValue: Vehicle
@@ -85,6 +87,22 @@ const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
     },
   })
 }
+
+const enabledSectionKeys = computed(() =>
+  sectionKeys.filter((sectionKey) => props.modelValue.sections[sectionKey].enabled),
+)
+
+const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
+  updateVehicle({
+    sections: {
+      ...props.modelValue.sections,
+      [sectionKey]: {
+        ...props.modelValue.sections[sectionKey],
+        fields,
+      },
+    },
+  })
+}
 </script>
 
 <template>
@@ -153,7 +171,28 @@ const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
         </label>
       </div>
     </section>
+    <section class="fields-section" aria-labelledby="fields-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Structured data</p>
+          <h3 id="fields-heading">Specification fields</h3>
+        </div>
+      </div>
 
+      <p v-if="enabledSectionKeys.length === 0" class="empty-text">
+        Enable a section above to add specification fields.
+      </p>
+
+      <div class="field-sections">
+        <SpecFieldForm
+          v-for="sectionKey in enabledSectionKeys"
+          :key="sectionKey"
+          :section-label="sectionLabels[sectionKey]"
+          :fields="modelValue.sections[sectionKey].fields"
+          @update:fields="updateSectionFields(sectionKey, $event)"
+        />
+      </div>
+    </section>
     <section class="trims-section" aria-labelledby="trims-heading">
       <div class="section-heading">
         <div>
@@ -287,6 +326,16 @@ h3 {
 .empty-text {
   margin: 0;
   color: #6a6258;
+}
+
+.fields-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.field-sections {
+  display: grid;
+  gap: 1rem;
 }
 
 @media (max-width: 640px) {
