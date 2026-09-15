@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TrimForm from './TrimForm.vue'
-import type { PowertrainType, Trim, Vehicle } from '../types/vehicle'
+import type { PowertrainType, SectionKey, Trim, Vehicle } from '../types/vehicle'
 
 const props = defineProps<{
   modelValue: Vehicle
@@ -53,6 +53,38 @@ const updateTrimName = (trimId: string, name: string) => {
 const updatePowertrain = (powertrainType: PowertrainType) => {
   updateVehicle({ powertrainType })
 }
+
+const sectionKeys: SectionKey[] = [
+  'price',
+  'powertrain',
+  'chassis',
+  'dimensions',
+  'testing',
+  'interiorSound',
+  'fuelEconomy',
+]
+
+const sectionLabels: Record<SectionKey, string> = {
+  price: 'Price',
+  powertrain: 'Powertrain',
+  chassis: 'Chassis',
+  dimensions: 'Dimensions',
+  testing: 'C/D Test Results',
+  interiorSound: 'Interior Sound',
+  fuelEconomy: 'C/D Fuel Economy and Charging',
+}
+
+const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
+  updateVehicle({
+    sections: {
+      ...props.modelValue.sections,
+      [sectionKey]: {
+        ...props.modelValue.sections[sectionKey],
+        enabled,
+      },
+    },
+  })
+}
 </script>
 
 <template>
@@ -101,6 +133,26 @@ const updatePowertrain = (powertrainType: PowertrainType) => {
         <option value="electric">Electric</option>
       </select>
     </label>
+
+    <section class="sections-section" aria-labelledby="sections-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Output controls</p>
+          <h3 id="sections-heading">Included sections</h3>
+        </div>
+      </div>
+
+      <div class="section-controls" role="group" aria-labelledby="sections-heading">
+        <label v-for="sectionKey in sectionKeys" :key="sectionKey" class="section-control">
+          <input
+            type="checkbox"
+            :checked="modelValue.sections[sectionKey].enabled"
+            @change="updateSectionEnabled(sectionKey, ($event.target as HTMLInputElement).checked)"
+          />
+          <span>{{ sectionLabels[sectionKey] }}</span>
+        </label>
+      </div>
+    </section>
 
     <section class="trims-section" aria-labelledby="trims-heading">
       <div class="section-heading">
@@ -168,6 +220,35 @@ select {
   gap: 1rem;
 }
 
+.sections-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.section-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.section-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border: 1px solid #c8beb1;
+  border-radius: 0.45rem;
+  background: #fffdf9;
+  color: #202124;
+  cursor: pointer;
+}
+
+.section-control input {
+  width: auto;
+  margin: 0;
+  accent-color: #202124;
+}
+
 .section-heading {
   display: flex;
   align-items: end;
@@ -216,6 +297,10 @@ h3 {
   .section-heading {
     align-items: start;
     flex-direction: column;
+  }
+
+  .section-controls {
+    grid-template-columns: 1fr;
   }
 }
 </style>
