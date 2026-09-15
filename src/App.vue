@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import VehicleForm from './components/VehicleForm.vue'
 import type { Panel } from './types/panel'
-import type { SectionKey, VehicleSection } from './types/vehicle'
+import type { SectionKey, Vehicle, VehicleSection } from './types/vehicle'
 
 const createSection = (): VehicleSection => ({
   enabled: true,
@@ -17,6 +17,24 @@ const createSections = (): Record<SectionKey, VehicleSection> => ({
   testing: createSection(),
   interiorSound: createSection(),
   fuelEconomy: createSection(),
+})
+
+const createVehicleTwo = (): Vehicle => ({
+  id: 'vehicle-two',
+  identity: {
+    year: '',
+    make: '',
+    model: '',
+  },
+  powertrainType: 'combustion',
+  trims: [
+    {
+      id: 'vehicle-two-trim-one',
+      name: '',
+      fields: [],
+    },
+  ],
+  sections: createSections(),
 })
 
 const panel = ref<Panel>({
@@ -40,6 +58,14 @@ const panel = ref<Panel>({
   testingExplainedEnabled: false,
   generatedHtml: '',
 })
+
+const addVehicleTwo = () => {
+  panel.value.vehicleTwo = createVehicleTwo()
+}
+
+const removeVehicleTwo = () => {
+  delete panel.value.vehicleTwo
+}
 </script>
 
 <template>
@@ -53,18 +79,39 @@ const panel = ref<Panel>({
     </header>
 
     <section class="builder-layout" aria-label="Specifications panel builder">
-      <article class="builder-card">
-        <div class="card-heading">
-          <div>
-            <p class="eyebrow">Required</p>
-            <h2>Vehicle 1</h2>
+      <div class="vehicle-list">
+        <article class="builder-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">Required</p>
+              <h2>Vehicle 1</h2>
+            </div>
+
+            <span class="status-badge">In progress</span>
           </div>
 
-          <span class="status-badge">In progress</span>
-        </div>
+          <VehicleForm v-model="panel.vehicleOne" />
+        </article>
 
-        <VehicleForm v-model="panel.vehicleOne" />
-      </article>
+        <article v-if="panel.vehicleTwo" class="builder-card">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">Optional</p>
+              <h2>Vehicle 2</h2>
+            </div>
+
+            <button type="button" class="remove-button" @click="removeVehicleTwo">
+              Remove vehicle
+            </button>
+          </div>
+
+          <VehicleForm v-model="panel.vehicleTwo" />
+        </article>
+
+        <button v-else type="button" class="add-vehicle-button" @click="addVehicleTwo">
+          Add Vehicle 2
+        </button>
+      </div>
 
       <aside class="preview-card">
         <div class="card-heading">
@@ -158,6 +205,11 @@ h2 {
   gap: 1.5rem;
 }
 
+.vehicle-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
 .builder-card,
 .preview-card {
   min-height: 300px;
@@ -186,13 +238,24 @@ h2 {
   white-space: nowrap;
 }
 
-button {
+.add-vehicle-button,
+.remove-button {
   padding: 0.7rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: #d8d0c5;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.add-vehicle-button {
+  width: 100%;
+  background: #202124;
+  color: #fffdf9;
+}
+
+.remove-button {
+  background: #ebe5dc;
   color: #6a6258;
-  cursor: not-allowed;
 }
 
 .preview-placeholder {
