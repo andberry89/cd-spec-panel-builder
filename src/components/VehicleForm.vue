@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import SpecFieldForm from './SpecFieldForm.vue'
 import TrimForm from './TrimForm.vue'
+import ChargingFieldForm from './ChargingFieldForm.vue'
 import type { PowertrainType, SectionKey, SpecField, Trim, Vehicle } from '../types/vehicle'
 
 const props = defineProps<{
@@ -91,6 +92,34 @@ const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
 const enabledSectionKeys = computed(() =>
   sectionKeys.filter((sectionKey) => props.modelValue.sections[sectionKey].enabled),
 )
+
+const standardEnabledSectionKeys = computed(() =>
+  enabledSectionKeys.value.filter(
+    (sectionKey) =>
+      !(props.modelValue.powertrainType === 'electric' && sectionKey === 'fuelEconomy'),
+  ),
+)
+
+const isChargingField = (field: SpecField) => field.id.startsWith('charging-')
+
+const visibleSectionFields = (sectionKey: SectionKey) => {
+  const fields = props.modelValue.sections[sectionKey].fields
+
+  if (sectionKey === 'fuelEconomy' && props.modelValue.powertrainType !== 'electric') {
+    return fields.filter((field) => !isChargingField(field))
+  }
+
+  return fields
+}
+
+const updateStandardSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
+  const hiddenChargingFields =
+    sectionKey === 'fuelEconomy' && props.modelValue.powertrainType !== 'electric'
+      ? props.modelValue.sections.fuelEconomy.fields.filter(isChargingField)
+      : []
+
+  updateSectionFields(sectionKey, [...fields, ...hiddenChargingFields])
+}
 
 const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
   updateVehicle({
@@ -185,11 +214,17 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
 
       <div class="field-sections">
         <SpecFieldForm
-          v-for="sectionKey in enabledSectionKeys"
+          v-for="sectionKey in standardEnabledSectionKeys"
           :key="sectionKey"
           :section-label="sectionLabels[sectionKey]"
-          :fields="modelValue.sections[sectionKey].fields"
-          @update:fields="updateSectionFields(sectionKey, $event)"
+          :fields="visibleSectionFields(sectionKey)"
+          @update:fields="updateStandardSectionFields(sectionKey, $event)"
+        />
+
+        <ChargingFieldForm
+          v-if="modelValue.powertrainType === 'electric' && modelValue.sections.fuelEconomy.enabled"
+          :fields="modelValue.sections.fuelEconomy.fields"
+          @update:fields="updateSectionFields('fuelEconomy', $event)"
         />
       </div>
     </section>
