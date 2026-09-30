@@ -54,8 +54,15 @@ const isChargingField = (field: SpecField) =>
 
 const additionalFields = computed(() => props.fields.filter((field) => !isChargingField(field)))
 
-const updateChargingField = (definition: ChargingFieldDefinition, value: string) => {
+const updateChargingField = (
+  definition: ChargingFieldDefinition,
+  changes: Partial<Pick<SpecField, 'value' | 'qualifier'>>,
+) => {
   const existingField = findField(definition)
+
+  const value = 'value' in changes ? (changes.value ?? '') : (existingField?.value ?? '')
+
+  const qualifier = 'qualifier' in changes ? changes.qualifier : existingField?.qualifier
 
   const remainingFields = props.fields.filter(
     (field) => field.id !== existingField?.id && field.label !== definition.label,
@@ -72,7 +79,7 @@ const updateChargingField = (definition: ChargingFieldDefinition, value: string)
       id: getId(definition),
       label: definition.label,
       value,
-      ...(existingField?.qualifier ? { qualifier: existingField.qualifier } : {}),
+      ...(qualifier ? { qualifier } : {}),
     },
   ])
 }
@@ -90,15 +97,76 @@ const updateAdditionalFields = (fields: SpecField[]) => {
     </div>
 
     <div class="charging-fields">
-      <label v-for="definition in definitions" :key="definition.id">
-        {{ definition.label }}
-        <input
-          :value="findField(definition)?.value ?? ''"
-          type="text"
-          :placeholder="definition.placeholder"
-          @input="updateChargingField(definition, ($event.target as HTMLInputElement).value)"
-        />
-      </label>
+      <div v-for="definition in definitions" :key="definition.id" class="charging-field">
+        <label>
+          {{ definition.label }}
+          <input
+            :value="findField(definition)?.value ?? ''"
+            type="text"
+            :placeholder="definition.placeholder"
+            @input="
+              updateChargingField(definition, {
+                value: ($event.target as HTMLInputElement).value,
+              })
+            "
+          />
+        </label>
+
+        <div class="qualifier-control">
+          <span class="qualifier-label">Qualifier</span>
+
+          <div
+            class="qualifier-options"
+            role="radiogroup"
+            :aria-label="`${definition.label} qualifier`"
+          >
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${definition.id}`"
+                type="radio"
+                value=""
+                :checked="!findField(definition)?.qualifier"
+                @change="
+                  updateChargingField(definition, {
+                    qualifier: undefined,
+                  })
+                "
+              />
+              <span>None</span>
+            </label>
+
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${definition.id}`"
+                type="radio"
+                value="C/D est"
+                :checked="findField(definition)?.qualifier === 'C/D est'"
+                @change="
+                  updateChargingField(definition, {
+                    qualifier: 'C/D est',
+                  })
+                "
+              />
+              <span><em>C/D</em> est</span>
+            </label>
+
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${definition.id}`"
+                type="radio"
+                value="gov ltd"
+                :checked="findField(definition)?.qualifier === 'gov ltd'"
+                @change="
+                  updateChargingField(definition, {
+                    qualifier: 'gov ltd',
+                  })
+                "
+              />
+              <span>gov ltd</span>
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
     <SpecFieldForm
@@ -138,6 +206,11 @@ h4 {
   gap: 1rem;
 }
 
+.charging-field {
+  display: grid;
+  gap: 0.65rem;
+}
+
 label {
   display: grid;
   gap: 0.4rem;
@@ -146,7 +219,7 @@ label {
   font-weight: 700;
 }
 
-input {
+.charging-field > label input {
   width: 100%;
   padding: 0.65rem;
   border: 1px solid #c8beb1;
@@ -154,5 +227,39 @@ input {
   background: #fffdf9;
   color: #202124;
   font: inherit;
+}
+
+.qualifier-control {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.qualifier-label {
+  color: #6a6258;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.qualifier-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.qualifier-option {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #202124;
+  font-size: 0.8rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.qualifier-option input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  accent-color: #202124;
 }
 </style>
