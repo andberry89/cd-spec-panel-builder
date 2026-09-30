@@ -38,6 +38,10 @@ const removeField = (fieldId: string) => {
     props.fields.filter((field) => field.id !== fieldId),
   )
 }
+
+const updateQualifier = (fieldId: string, qualifier: string | undefined) => {
+  updateField(fieldId, { qualifier })
+}
 </script>
 
 <template>
@@ -95,7 +99,44 @@ const removeField = (fieldId: string) => {
             "
           />
         </label>
+        <div class="qualifier-control">
+          <span class="qualifier-label">Qualifier</span>
 
+          <div class="qualifier-options" role="radiogroup" aria-label="Qualifier">
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${field.id}`"
+                type="radio"
+                value=""
+                :checked="!field.qualifier"
+                @change="updateQualifier(field.id, undefined)"
+              />
+              <span>None</span>
+            </label>
+
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${field.id}`"
+                type="radio"
+                value="C/D est"
+                :checked="field.qualifier === 'C/D est'"
+                @change="updateQualifier(field.id, 'C/D est')"
+              />
+              <span><em>C/D</em> est</span>
+            </label>
+
+            <label class="qualifier-option">
+              <input
+                :name="`qualifier-${field.id}`"
+                type="radio"
+                value="gov ltd"
+                :checked="field.qualifier === 'gov ltd'"
+                @change="updateQualifier(field.id, 'gov ltd')"
+              />
+              <span>gov ltd</span>
+            </label>
+          </div>
+        </div>
         <button type="button" class="remove-field-button" @click="removeField(field.id)">
           Remove
         </button>
@@ -137,6 +178,7 @@ h4 {
     minmax(0, 1.2fr)
     minmax(0, 1.2fr)
     minmax(120px, 0.6fr)
+    minmax(180px, 1fr)
     auto;
   gap: 0.75rem;
   padding: 1rem;
@@ -193,6 +235,40 @@ input {
 .empty-text {
   margin: 0;
   color: #6a6258;
+}
+
+.qualifier-control {
+  display: grid;
+  align-content: end;
+  gap: 0.4rem;
+}
+
+.qualifier-label {
+  color: #6a6258;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.qualifier-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.qualifier-option {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #202124;
+  font-size: 0.8rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.qualifier-option input {
+  width: auto;
+  margin: 0;
+  accent-color: #202124;
 }
 
 @media (max-width: 640px) {
