@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// testing
 import { computed } from 'vue'
 import SpecFieldForm from './SpecFieldForm.vue'
 import type { SpecField } from '../types/vehicle'
