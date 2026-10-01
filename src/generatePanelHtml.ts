@@ -58,6 +58,11 @@ const paragraph = (heading: string, lines: string[]) => {
   return `<p><strong>${heading}</strong><br>\n${lines.join('<br>\n')}</p>`
 }
 
+const richHeadingParagraph = (headingHtml: string, lines: string[]) => {
+  if (!lines.length) return ''
+  return `<p>${headingHtml}<br>\n${lines.join('<br>\n')}</p>`
+}
+
 const formatVehicleType = (type: VehicleTypeSpec) => {
   const pieces: string[] = []
   if (type.enginePosition) pieces.push(`${type.enginePosition}-engine`)
@@ -72,12 +77,42 @@ const formatVehicleType = (type: VehicleTypeSpec) => {
   return pieces.map(escapeHtml).join(', ')
 }
 
-const renderPrice = (fields: SpecField[], panelType: PanelType) =>
-  paragraph('PRICE', fields.map((field) =>
+const formatPrice = (value: string) => {
+  const raw = value.trim()
+  const amount = Number(raw.replace(/[$,\s]/g, ''))
+  if (raw && Number.isFinite(amount)) {
+    return `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(amount)}`
+  }
+  const escaped = escapeHtml(raw)
+  return escaped.startsWith('$') ? escaped : `$${escaped}`
+}
+
+const renderPrice = (vehicle: Vehicle, fields: SpecField[], panelType: PanelType) => {
+  if (panelType === 'firstDrive') {
+    const stylePrices = vehicle.identity.vehicleType.bodyStyles.length > 1
+      ? vehicle.identity.vehicleType.bodyStyles.map((style) => ({
+          label: style[0]?.toUpperCase() + style.slice(1),
+          ...(vehicle.bodyStylePrices[style] ?? { amount: '', estimated: false }),
+        }))
+      : vehicle.trims.map((trim) => ({ label: trim.name.trim(), ...trim.basePrice }))
+    const prices = stylePrices
+      .filter((price) => price.amount?.trim())
+    const allEstimated = prices.length > 0 && prices.every((price) => price.estimated)
+    const lines = prices.map((price) => {
+      const qualifier = price.estimated && !allEstimated ? ' <em>(C/D est)</em>' : ''
+      return `${price.label ? `${escapeHtml(price.label)}, ` : ''}${formatPrice(price.amount)}${qualifier}`
+    })
+    const priceLines = lines.length ? [`Base: ${lines.join('; ')}`] : []
+    return allEstimated
+      ? richHeadingParagraph('<strong>PRICE (<em>C/D</em> EST)</strong>', priceLines)
+      : paragraph('PRICE', priceLines)
+  }
+  return paragraph('PRICE', fields.map((field) =>
     field.id === 'base-price'
       ? `${panelType === 'testedSpecs' ? 'Base/As Tested' : 'Base'}: ${formatValue(field)}`
       : row(field),
   ))
+}
 
 const renderPowertrain = (
   fields: SpecField[],
@@ -173,12 +208,15 @@ const renderTesting = (fields: SpecField[], panelType: PanelType) => {
     lines.push(`<em>Results above omit 1-ft rollout of ${formatValue(rollout)}.</em>`)
   }
   if (panelType === 'firstDrive') {
-    return paragraph('PERFORMANCE (<em><strong>C/D</strong></em> EST)', lines)
+    return richHeadingParagraph(
+      '<strong>PERFORMANCE (</strong><em><strong>C/D</strong></em><strong> EST)</strong>',
+      lines,
+    )
   }
   const heading = panelType === 'longTerm'
-    ? '<em><strong>C/D</strong></em> TEST RESULTS: NEW'
-    : '<em><strong>C/D</strong></em> TEST RESULTS'
-  return paragraph(heading, lines)
+    ? '<em><strong>C/D</strong></em><strong> TEST RESULTS: NEW</strong>'
+    : '<em><strong>C/D</strong></em><strong> TEST RESULTS</strong>'
+  return richHeadingParagraph(heading, lines)
 }
 
 const renderFuelEconomy = (vehicle: Vehicle, fields: SpecField[]) => {
@@ -186,8 +224,8 @@ const renderFuelEconomy = (vehicle: Vehicle, fields: SpecField[]) => {
   const tested = fields.filter((field) => !epaIds.includes(field.id))
   const epa = fields.filter((field) => epaIds.includes(field.id))
   const fuelHeading = vehicle.powertrainType === 'electric'
-    ? '<em><strong>C/D</strong></em> FUEL ECONOMY AND CHARGING'
-    : '<em><strong>C/D</strong></em> FUEL ECONOMY'
+    ? '<em><strong>C/D</strong></em><strong> FUEL ECONOMY AND CHARGING</strong>'
+    : '<em><strong>C/D</strong></em><strong> FUEL ECONOMY</strong>'
   const epaLines = epa.map((field) => {
     const label = field.id === 'epa-fuel-economy'
       ? 'Combined/City/Highway'
@@ -199,17 +237,20 @@ const renderFuelEconomy = (vehicle: Vehicle, fields: SpecField[]) => {
       : formatValue(field)
     return `${escapeHtml(label)}: ${value}`
   })
-  return [paragraph(fuelHeading, tested.map(row)), paragraph('EPA FUEL ECONOMY', epaLines)]
+  return [richHeadingParagraph(fuelHeading, tested.map(row)), paragraph('EPA FUEL ECONOMY', epaLines)]
     .filter(Boolean)
     .join('\n')
 }
 
 const renderSection = (vehicle: Vehicle, key: SectionKey, panelType: PanelType) => {
   if (!vehicle.sections[key].enabled) return ''
+  if (key === 'price' && panelType === 'firstDrive') {
+    return renderPrice(vehicle, populated(vehicle, key), panelType)
+  }
   const fields = populated(vehicle, key)
   if (!fields.length) return ''
 
-  if (key === 'price') return renderPrice(fields, panelType)
+  if (key === 'price') return renderPrice(vehicle, fields, panelType)
   if (key === 'powertrain') {
     const transmission = vehicle.sections.transmission.enabled
       ? populated(vehicle, 'transmission')[0]
@@ -241,7 +282,7 @@ export const generatePanelHtml = (
   testingExplainedEnabled = true,
 ) => {
   const { year, make, model } = vehicle.identity
-  const trimName = vehicle.trims[0]?.name.trim() ?? ''
+  const trimName = vehicle.identity.includeTrimInHeading ? vehicle.trims[0]?.name.trim() ?? '' : ''
   const identity = [year.trim(), make.trim(), model.trim(), trimName]
     .filter(Boolean)
     .map(escapeHtml)
