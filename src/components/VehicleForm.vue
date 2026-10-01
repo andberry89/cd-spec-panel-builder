@@ -53,6 +53,12 @@ const updateTrimName = (trimId: string, name: string) => {
   })
 }
 
+const updateTrimFields = (trimId: string, fields: SpecField[]) => {
+  updateVehicle({
+    trims: props.modelValue.trims.map((trim) => (trim.id === trimId ? { ...trim, fields } : trim)),
+  })
+}
+
 const updatePowertrain = (powertrainType: PowertrainType) => {
   updateVehicle({ powertrainType })
 }
@@ -250,6 +256,7 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
           :can-remove="modelValue.trims.length > 1"
           @remove="removeTrim(trim.id)"
           @update:name="updateTrimName(trim.id, $event)"
+          @update:fields="updateTrimFields(trim.id, $event)"
         >
           <template #default> Trim {{ index + 1 }} </template>
         </TrimForm>
