@@ -1,22 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import VehicleForm from './components/VehicleForm.vue'
 import type { Panel } from './types/panel'
-import type { SectionKey, Vehicle, VehicleSection } from './types/vehicle'
+import type { SectionKey, Vehicle, VehicleSection, VehicleTypeSpec } from './types/vehicle'
+import { createEmptyFields } from './data/fieldCatalog'
+import { generatePanelHtml } from './generatePanelHtml'
 
 const createSection = (): VehicleSection => ({
   enabled: true,
   fields: [],
 })
 
+const createVehicleType = (): VehicleTypeSpec => ({
+  enginePosition: '',
+  motorPositions: [],
+  driveLayout: '',
+  passengers: '',
+  doors: '',
+  bodyStyles: [],
+})
+
 const createSections = (): Record<SectionKey, VehicleSection> => ({
-  price: createSection(),
-  powertrain: createSection(),
-  chassis: createSection(),
-  dimensions: createSection(),
-  testing: createSection(),
-  interiorSound: createSection(),
-  fuelEconomy: createSection(),
+  price: { ...createSection(), fields: createEmptyFields('price') },
+  powertrain: { ...createSection(), fields: createEmptyFields('powertrain') },
+  transmission: { ...createSection(), fields: createEmptyFields('transmission') },
+  chassis: { ...createSection(), fields: createEmptyFields('chassis') },
+  dimensions: { ...createSection(), fields: createEmptyFields('dimensions') },
+  testing: { ...createSection(), fields: createEmptyFields('testing') },
+  interiorSound: { ...createSection(), fields: createEmptyFields('interiorSound') },
+  fuelEconomy: { ...createSection(), fields: createEmptyFields('fuelEconomy') },
 })
 
 const createVehicleTwo = (): Vehicle => ({
@@ -25,6 +37,7 @@ const createVehicleTwo = (): Vehicle => ({
     year: '',
     make: '',
     model: '',
+    vehicleType: createVehicleType(),
   },
   powertrainType: 'combustion',
   trims: [
@@ -38,26 +51,44 @@ const createVehicleTwo = (): Vehicle => ({
 })
 
 const panel = ref<Panel>({
+  panelType: 'firstDrive',
   vehicleOne: {
     id: 'vehicle-one',
     identity: {
-      year: '2026',
-      make: 'Ford',
-      model: 'Mustang',
+      year: '',
+      make: '',
+      model: '',
+      vehicleType: createVehicleType(),
     },
     powertrainType: 'combustion',
     trims: [
       {
         id: 'trim-one',
-        name: 'GT',
+        name: '',
         fields: [],
       },
     ],
     sections: createSections(),
   },
-  testingExplainedEnabled: false,
+  testingExplainedEnabled: true,
   generatedHtml: '',
 })
+
+const generatedHtml = computed(() =>
+  [panel.value.vehicleOne, panel.value.vehicleTwo]
+    .filter((vehicle): vehicle is Vehicle => Boolean(vehicle))
+  .map((vehicle) =>
+    generatePanelHtml(vehicle, panel.value.panelType, panel.value.testingExplainedEnabled),
+  )
+    .join('\n<hr>\n'),
+)
+const copied = ref(false)
+
+const copyHtml = async () => {
+  await navigator.clipboard.writeText(generatedHtml.value)
+  copied.value = true
+  window.setTimeout(() => (copied.value = false), 1800)
+}
 
 const addVehicleTwo = () => {
   panel.value.vehicleTwo = createVehicleTwo()
@@ -76,6 +107,14 @@ const removeVehicleTwo = () => {
       <p class="intro">
         Enter structured vehicle data and generate clean HTML for the publishing workflow.
       </p>
+      <label class="panel-type-control">
+        Panel template
+        <select v-model="panel.panelType">
+          <option value="firstDrive">First Drive</option>
+          <option value="testedSpecs">Tested Specs</option>
+          <option value="longTerm">Long-Term Test</option>
+        </select>
+      </label>
     </header>
 
     <section class="builder-layout" aria-label="Specifications panel builder">
@@ -87,10 +126,10 @@ const removeVehicleTwo = () => {
               <h2>Vehicle 1</h2>
             </div>
 
-            <span class="status-badge">In progress</span>
+            <span class="status-badge">Live</span>
           </div>
 
-          <VehicleForm v-model="panel.vehicleOne" />
+          <VehicleForm v-model="panel.vehicleOne" :panel-type="panel.panelType" />
         </article>
 
         <article v-if="panel.vehicleTwo" class="builder-card">
@@ -105,7 +144,7 @@ const removeVehicleTwo = () => {
             </button>
           </div>
 
-          <VehicleForm v-model="panel.vehicleTwo" />
+          <VehicleForm v-model="panel.vehicleTwo" :panel-type="panel.panelType" />
         </article>
 
         <button v-else type="button" class="add-vehicle-button" @click="addVehicleTwo">
@@ -120,11 +159,20 @@ const removeVehicleTwo = () => {
             <h2>Preview</h2>
           </div>
 
-          <span class="status-badge">Empty</span>
+          <button type="button" class="copy-button" :disabled="!generatedHtml" @click="copyHtml">
+            {{ copied ? 'Copied' : 'Copy HTML' }}
+          </button>
         </div>
 
-        <div class="preview-placeholder">
-          <p>Generated specifications HTML will appear here.</p>
+        <label v-if="panel.panelType !== 'firstDrive'" class="testing-link-toggle">
+          <input v-model="panel.testingExplainedEnabled" type="checkbox" />
+          Include C/D testing explained link
+        </label>
+        <div class="preview-content">
+          <h3>Rendered preview</h3>
+          <div class="rendered-preview" v-html="generatedHtml"></div>
+          <h3>HTML</h3>
+          <textarea :value="generatedHtml" readonly aria-label="Generated specifications HTML"></textarea>
         </div>
       </aside>
     </section>
@@ -164,6 +212,15 @@ const removeVehicleTwo = () => {
 .app-header {
   max-width: 720px;
   margin-bottom: 2rem;
+}
+
+.panel-type-control {
+  display: grid;
+  max-width: 22rem;
+  gap: 0.4rem;
+  color: #6a6258;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .eyebrow {
@@ -239,7 +296,8 @@ h2 {
 }
 
 .add-vehicle-button,
-.remove-button {
+.remove-button,
+.copy-button {
   padding: 0.7rem 1rem;
   border: 0;
   border-radius: 0.5rem;
@@ -258,14 +316,56 @@ h2 {
   color: #6a6258;
 }
 
-.preview-placeholder {
+.copy-button {
+  background: #202124;
+  color: #fffdf9;
+}
+
+.copy-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.testing-link-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #6a6258;
+  font-size: 0.9rem;
+}
+
+.preview-content {
   display: grid;
-  min-height: 160px;
-  place-items: center;
-  padding: 1.5rem;
-  border: 1px dashed #c8beb1;
+  gap: 0.75rem;
+}
+
+.preview-content h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rendered-preview {
+  min-height: 8rem;
+  padding: 1rem;
+  border: 1px solid #d8d0c5;
   border-radius: 0.75rem;
-  text-align: center;
+  background: white;
+  color: #202124;
+  font-family: Georgia, serif;
+  line-height: 1.45;
+}
+
+textarea {
+  width: 100%;
+  min-height: 18rem;
+  resize: vertical;
+  padding: 0.85rem;
+  border: 1px solid #c8beb1;
+  border-radius: 0.5rem;
+  background: #202124;
+  color: #f4f1eb;
+  font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (max-width: 760px) {

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import SpecFieldForm from './SpecFieldForm.vue'
 import TrimForm from './TrimForm.vue'
-import ChargingFieldForm from './ChargingFieldForm.vue'
-import type { PowertrainType, SectionKey, SpecField, Trim, Vehicle } from '../types/vehicle'
+import VehicleTypeForm from './VehicleTypeForm.vue'
+import { sectionLabels } from '../data/fieldCatalog'
+import type { PowertrainType, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from '../types/vehicle'
+import type { PanelType } from '../types/panel'
 
 const props = defineProps<{
   modelValue: Vehicle
+  panelType: PanelType
 }>()
 
 const emit = defineEmits<{
@@ -20,7 +22,7 @@ const updateVehicle = (changes: Partial<Vehicle>) => {
   })
 }
 
-const updateIdentity = (field: keyof Vehicle['identity'], value: string) => {
+const updateIdentity = (field: 'year' | 'make' | 'model', value: string) => {
   updateVehicle({
     identity: {
       ...props.modelValue.identity,
@@ -29,33 +31,13 @@ const updateIdentity = (field: keyof Vehicle['identity'], value: string) => {
   })
 }
 
-const createTrim = (): Trim => ({
-  id: `trim-${Date.now()}`,
-  name: '',
-  fields: [],
-})
-
-const addTrim = () => {
-  updateVehicle({
-    trims: [...props.modelValue.trims, createTrim()],
-  })
-}
-
-const removeTrim = (trimId: string) => {
-  updateVehicle({
-    trims: props.modelValue.trims.filter((trim) => trim.id !== trimId),
-  })
+const updateVehicleType = (vehicleType: VehicleTypeSpec) => {
+  updateVehicle({ identity: { ...props.modelValue.identity, vehicleType } })
 }
 
 const updateTrimName = (trimId: string, name: string) => {
   updateVehicle({
     trims: props.modelValue.trims.map((trim) => (trim.id === trimId ? { ...trim, name } : trim)),
-  })
-}
-
-const updateTrimFields = (trimId: string, fields: SpecField[]) => {
-  updateVehicle({
-    trims: props.modelValue.trims.map((trim) => (trim.id === trimId ? { ...trim, fields } : trim)),
   })
 }
 
@@ -66,22 +48,13 @@ const updatePowertrain = (powertrainType: PowertrainType) => {
 const sectionKeys: SectionKey[] = [
   'price',
   'powertrain',
+  'transmission',
   'chassis',
   'dimensions',
   'testing',
   'interiorSound',
   'fuelEconomy',
 ]
-
-const sectionLabels: Record<SectionKey, string> = {
-  price: 'Price',
-  powertrain: 'Powertrain',
-  chassis: 'Chassis',
-  dimensions: 'Dimensions',
-  testing: 'C/D Test Results',
-  interiorSound: 'Interior Sound',
-  fuelEconomy: 'C/D Fuel Economy and Charging',
-}
 
 const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
   updateVehicle({
@@ -95,38 +68,6 @@ const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {
   })
 }
 
-const enabledSectionKeys = computed(() =>
-  sectionKeys.filter((sectionKey) => props.modelValue.sections[sectionKey].enabled),
-)
-
-const standardEnabledSectionKeys = computed(() =>
-  enabledSectionKeys.value.filter(
-    (sectionKey) =>
-      !(props.modelValue.powertrainType === 'electric' && sectionKey === 'fuelEconomy'),
-  ),
-)
-
-const isChargingField = (field: SpecField) => field.id.startsWith('charging-')
-
-const visibleSectionFields = (sectionKey: SectionKey) => {
-  const fields = props.modelValue.sections[sectionKey].fields
-
-  if (sectionKey === 'fuelEconomy' && props.modelValue.powertrainType !== 'electric') {
-    return fields.filter((field) => !isChargingField(field))
-  }
-
-  return fields
-}
-
-const updateStandardSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
-  const hiddenChargingFields =
-    sectionKey === 'fuelEconomy' && props.modelValue.powertrainType !== 'electric'
-      ? props.modelValue.sections.fuelEconomy.fields.filter(isChargingField)
-      : []
-
-  updateSectionFields(sectionKey, [...fields, ...hiddenChargingFields])
-}
-
 const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
   updateVehicle({
     sections: {
@@ -137,6 +78,33 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
       },
     },
   })
+}
+
+const hiddenField = (field: SpecField) => {
+  const electricOnly = ['front-motor', 'rear-motor', 'battery-pack', 'onboard-charger', 'peak-charge-rate']
+  const combustionOnly = ['engine-description', 'displacement', 'engine-power', 'engine-torque']
+  if (props.modelValue.powertrainType === 'combustion' && electricOnly.includes(field.id)) return true
+  if (props.modelValue.powertrainType === 'electric' && combustionOnly.includes(field.id)) return true
+  if (field.id === 'epa-electricity' && props.modelValue.powertrainType !== 'hybrid') return true
+  return false
+}
+
+const visibleFields = (sectionKey: SectionKey) =>
+  props.modelValue.sections[sectionKey].fields.filter((field) => !hiddenField(field))
+
+const updateVisibleFields = (sectionKey: SectionKey, fields: SpecField[]) => {
+  const hidden = props.modelValue.sections[sectionKey].fields.filter(hiddenField)
+  updateSectionFields(sectionKey, [...fields, ...hidden])
+}
+
+const displaySectionLabel = (key: SectionKey) => {
+  if (key === 'testing' && props.panelType === 'firstDrive') return 'Performance (C/D est)'
+  if (key === 'testing' && props.panelType === 'longTerm') return 'C/D Test Results: New'
+  if (key === 'fuelEconomy' && props.modelValue.powertrainType === 'electric') {
+    return 'Fuel Economy and Charging'
+  }
+  if (key === 'powertrain') return 'Engine / Powertrain'
+  return sectionLabels[key]
 }
 </script>
 
@@ -173,7 +141,13 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
           @input="updateIdentity('model', ($event.target as HTMLInputElement).value)"
         />
       </label>
+
     </div>
+
+    <VehicleTypeForm
+      :model-value="modelValue.identity.vehicleType"
+      @update:model-value="updateVehicleType"
+    />
 
     <label>
       Powertrain
@@ -202,7 +176,7 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
             :checked="modelValue.sections[sectionKey].enabled"
             @change="updateSectionEnabled(sectionKey, ($event.target as HTMLInputElement).checked)"
           />
-          <span>{{ sectionLabels[sectionKey] }}</span>
+          <span>{{ displaySectionLabel(sectionKey) }}</span>
         </label>
       </div>
     </section>
@@ -214,23 +188,19 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
         </div>
       </div>
 
-      <p v-if="enabledSectionKeys.length === 0" class="empty-text">
+      <p v-if="sectionKeys.every((key) => !modelValue.sections[key].enabled)" class="empty-text">
         Enable a section above to add specification fields.
       </p>
 
       <div class="field-sections">
         <SpecFieldForm
-          v-for="sectionKey in standardEnabledSectionKeys"
+          v-for="sectionKey in sectionKeys.filter((key) => modelValue.sections[key].enabled)"
           :key="sectionKey"
-          :section-label="sectionLabels[sectionKey]"
-          :fields="visibleSectionFields(sectionKey)"
-          @update:fields="updateStandardSectionFields(sectionKey, $event)"
-        />
-
-        <ChargingFieldForm
-          v-if="modelValue.powertrainType === 'electric' && modelValue.sections.fuelEconomy.enabled"
-          :fields="modelValue.sections.fuelEconomy.fields"
-          @update:fields="updateSectionFields('fuelEconomy', $event)"
+          :section-label="displaySectionLabel(sectionKey)"
+          :section-key="sectionKey"
+          :panel-type="panelType"
+          :fields="visibleFields(sectionKey)"
+          @update:fields="updateVisibleFields(sectionKey, $event)"
         />
       </div>
     </section>
@@ -241,25 +211,14 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
           <h3 id="trims-heading">Trims</h3>
         </div>
 
-        <button type="button" class="add-button" @click="addTrim">Add trim</button>
       </div>
-
-      <p v-if="modelValue.trims.length === 0" class="empty-text">
-        Add at least one trim or configuration.
-      </p>
 
       <div class="trim-list">
         <TrimForm
-          v-for="(trim, index) in modelValue.trims"
-          :key="trim.id"
-          :trim="trim"
-          :can-remove="modelValue.trims.length > 1"
-          @remove="removeTrim(trim.id)"
-          @update:name="updateTrimName(trim.id, $event)"
-          @update:fields="updateTrimFields(trim.id, $event)"
-        >
-          <template #default> Trim {{ index + 1 }} </template>
-        </TrimForm>
+          v-if="modelValue.trims[0]"
+          :trim="modelValue.trims[0]"
+          @update:name="updateTrimName(modelValue.trims[0].id, $event)"
+        />
       </div>
     </section>
   </form>

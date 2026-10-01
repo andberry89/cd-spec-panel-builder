@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { SpecField } from '../types/vehicle'
+import type { SectionKey, SpecField } from '../types/vehicle'
+import type { PanelType } from '../types/panel'
 
 const props = defineProps<{
   sectionLabel: string
+  sectionKey: SectionKey
+  panelType: PanelType
   fields: SpecField[]
 }>()
 
@@ -15,16 +18,6 @@ const headingId = computed(
   () => `section-fields-${props.sectionLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
 )
 
-const createField = (): SpecField => ({
-  id: `field-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  label: '',
-  value: '',
-})
-
-const addField = () => {
-  emit('update:fields', [...props.fields, createField()])
-}
-
 const updateField = (fieldId: string, changes: Partial<SpecField>) => {
   emit(
     'update:fields',
@@ -32,15 +25,14 @@ const updateField = (fieldId: string, changes: Partial<SpecField>) => {
   )
 }
 
-const removeField = (fieldId: string) => {
-  emit(
-    'update:fields',
-    props.fields.filter((field) => field.id !== fieldId),
-  )
-}
-
 const updateQualifier = (fieldId: string, qualifier: string | undefined) => {
   updateField(fieldId, { qualifier })
+}
+
+const displayFieldLabel = (field: SpecField) => {
+  if (field.id === 'base-price' && props.panelType === 'testedSpecs') return 'Base/As Tested'
+  if (field.id === 'base-price') return 'Base'
+  return field.label
 }
 </script>
 
@@ -49,35 +41,20 @@ const updateQualifier = (fieldId: string, qualifier: string | undefined) => {
     <div class="field-heading">
       <h4 :id="headingId">{{ sectionLabel }}</h4>
 
-      <button type="button" class="add-field-button" @click="addField">Add field</button>
     </div>
 
-    <p v-if="fields.length === 0" class="empty-text">Add a structured field for this section.</p>
+    <p v-if="fields.length === 0" class="empty-text">No fields are available in this section.</p>
 
     <div v-else class="field-list">
-      <fieldset v-for="(field, index) in fields" :key="field.id" class="field-row">
-        <legend>Field {{ index + 1 }}</legend>
-
-        <label>
-          Label
-          <input
-            :value="field.label"
-            type="text"
-            placeholder="e.g. Base price"
-            @input="
-              updateField(field.id, {
-                label: ($event.target as HTMLInputElement).value,
-              })
-            "
-          />
-        </label>
+      <fieldset v-for="field in fields" :key="field.id" class="field-row">
+        <legend>{{ displayFieldLabel(field) }}</legend>
 
         <label>
           Value
           <input
             :value="field.value"
             type="text"
-            placeholder="e.g. $42,500"
+            :placeholder="field.unit ? `Enter value (${field.unit})` : 'Enter value'"
             @input="
               updateField(field.id, {
                 value: ($event.target as HTMLInputElement).value,
@@ -86,19 +63,6 @@ const updateQualifier = (fieldId: string, qualifier: string | undefined) => {
           />
         </label>
 
-        <label>
-          Unit
-          <input
-            :value="field.unit ?? ''"
-            type="text"
-            placeholder="e.g. hp"
-            @input="
-              updateField(field.id, {
-                unit: ($event.target as HTMLInputElement).value || undefined,
-              })
-            "
-          />
-        </label>
         <div class="qualifier-control">
           <span class="qualifier-label">Qualifier</span>
 
@@ -137,9 +101,6 @@ const updateQualifier = (fieldId: string, qualifier: string | undefined) => {
             </label>
           </div>
         </div>
-        <button type="button" class="remove-field-button" @click="removeField(field.id)">
-          Remove
-        </button>
       </fieldset>
     </div>
   </section>
@@ -174,12 +135,7 @@ h4 {
 
 .field-row {
   display: grid;
-  grid-template-columns:
-    minmax(0, 1.2fr)
-    minmax(0, 1.2fr)
-    minmax(120px, 0.6fr)
-    minmax(180px, 1fr)
-    auto;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 1fr);
   gap: 0.75rem;
   padding: 1rem;
   border: 1px solid #c8beb1;
@@ -209,27 +165,6 @@ input {
   background: #fffdf9;
   color: #202124;
   font: inherit;
-}
-
-.add-field-button,
-.remove-field-button {
-  align-self: end;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.45rem;
-  font: inherit;
-  cursor: pointer;
-}
-
-.add-field-button {
-  border: 0;
-  background: #202124;
-  color: #fffdf9;
-}
-
-.remove-field-button {
-  border: 1px solid #c8beb1;
-  background: transparent;
-  color: #6a6258;
 }
 
 .empty-text {

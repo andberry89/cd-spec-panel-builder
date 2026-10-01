@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import type { Trim } from '../types/vehicle'
-import SpecFieldForm from './SpecFieldForm.vue'
 
 defineProps<{
   trim: Trim
-  canRemove: boolean
 }>()
 
 const emit = defineEmits<{
-  remove: []
   'update:name': [name: string]
-  'update:fields': [fields: Trim['fields']]
 }>()
 </script>
 
@@ -28,15 +24,6 @@ const emit = defineEmits<{
       />
     </label>
 
-    <SpecFieldForm
-      :section-label="trim.name ? `Specifications for ${trim.name}` : 'Trim specifications'"
-      :fields="trim.fields"
-      @update:fields="emit('update:fields', $event)"
-    />
-
-    <button v-if="canRemove" type="button" class="remove-button" @click="emit('remove')">
-      Remove trim
-    </button>
   </fieldset>
 </template>
 
@@ -72,13 +59,4 @@ input {
   font: inherit;
 }
 
-.remove-button {
-  justify-self: start;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.45rem;
-  background: transparent;
-  color: #6a6258;
-  cursor: pointer;
-}
 </style>

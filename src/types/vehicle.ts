@@ -1,7 +1,14 @@
 export type PowertrainType = 'combustion' | 'hybrid' | 'electric'
 
 export type SectionKey =
-  'price' | 'powertrain' | 'chassis' | 'dimensions' | 'testing' | 'interiorSound' | 'fuelEconomy'
+  | 'price'
+  | 'powertrain'
+  | 'transmission'
+  | 'chassis'
+  | 'dimensions'
+  | 'testing'
+  | 'interiorSound'
+  | 'fuelEconomy'
 
 export interface SpecField {
   id: string
@@ -20,6 +27,16 @@ export interface VehicleIdentity {
   year: string
   make: string
   model: string
+  vehicleType: VehicleTypeSpec
+}
+
+export interface VehicleTypeSpec {
+  enginePosition: '' | 'front' | 'mid' | 'rear'
+  motorPositions: Array<'front' | 'mid' | 'rear'>
+  driveLayout: '' | 'front' | 'rear' | 'all' | 'rear/4' | 'rear/all'
+  passengers: string
+  doors: string
+  bodyStyles: string[]
 }
 
 export interface Trim {
