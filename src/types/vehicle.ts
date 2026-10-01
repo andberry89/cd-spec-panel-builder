@@ -27,6 +27,7 @@ export interface VehicleIdentity {
   year: string
   make: string
   model: string
+  includeTrimInHeading: boolean
   vehicleType: VehicleTypeSpec
 }
 
@@ -42,7 +43,13 @@ export interface VehicleTypeSpec {
 export interface Trim {
   id: string
   name: string
+  basePrice: PriceValue
   fields: SpecField[]
+}
+
+export interface PriceValue {
+  amount: string
+  estimated: boolean
 }
 
 export interface Vehicle {
@@ -50,5 +57,6 @@ export interface Vehicle {
   identity: VehicleIdentity
   powertrainType: PowertrainType
   trims: Trim[]
+  bodyStylePrices: Record<string, PriceValue>
   sections: Record<SectionKey, VehicleSection>
 }

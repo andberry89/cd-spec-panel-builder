@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import type { Trim } from '../types/vehicle'
+import type { PriceValue, Trim } from '../types/vehicle'
 
-defineProps<{
+const props = defineProps<{
   trim: Trim
+  canRemove: boolean
 }>()
 
 const emit = defineEmits<{
+  remove: []
   'update:name': [name: string]
+  'update:base-price': [price: PriceValue]
 }>()
+
+const updateBasePrice = (changes: Partial<PriceValue>) => {
+  emit('update:base-price', { ...props.trim.basePrice, ...changes })
+}
 </script>
 
 <template>
@@ -15,7 +22,7 @@ const emit = defineEmits<{
     <legend>Trim or configuration</legend>
 
     <label>
-      Trim name
+      Trim or configuration
       <input
         :value="trim.name"
         type="text"
@@ -23,6 +30,30 @@ const emit = defineEmits<{
         @input="emit('update:name', ($event.target as HTMLInputElement).value)"
       />
     </label>
+
+    <label>
+      Base price
+      <input
+        :value="trim.basePrice.amount"
+        type="text"
+        inputmode="decimal"
+        placeholder="$68,990"
+        @input="updateBasePrice({ amount: ($event.target as HTMLInputElement).value })"
+      />
+    </label>
+
+    <label class="estimate-toggle">
+      <input
+        :checked="trim.basePrice.estimated"
+        type="checkbox"
+        @change="updateBasePrice({ estimated: ($event.target as HTMLInputElement).checked })"
+      />
+      This price is a <em>C/D</em> estimate
+    </label>
+
+    <button v-if="canRemove" type="button" class="remove-button" @click="emit('remove')">
+      Remove configuration
+    </button>
 
   </fieldset>
 </template>
@@ -57,6 +88,17 @@ input {
   background: #fffdf9;
   color: #202124;
   font: inherit;
+}
+
+.estimate-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+.estimate-toggle input {
+  width: auto;
 }
 
 </style>

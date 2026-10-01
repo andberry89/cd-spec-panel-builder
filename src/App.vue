@@ -37,6 +37,7 @@ const createVehicleTwo = (): Vehicle => ({
     year: '',
     make: '',
     model: '',
+    includeTrimInHeading: false,
     vehicleType: createVehicleType(),
   },
   powertrainType: 'combustion',
@@ -44,9 +45,11 @@ const createVehicleTwo = (): Vehicle => ({
     {
       id: 'vehicle-two-trim-one',
       name: '',
+      basePrice: { amount: '', estimated: false },
       fields: [],
     },
   ],
+  bodyStylePrices: {},
   sections: createSections(),
 })
 
@@ -58,6 +61,7 @@ const panel = ref<Panel>({
       year: '',
       make: '',
       model: '',
+      includeTrimInHeading: false,
       vehicleType: createVehicleType(),
     },
     powertrainType: 'combustion',
@@ -65,9 +69,11 @@ const panel = ref<Panel>({
       {
         id: 'trim-one',
         name: '',
+        basePrice: { amount: '', estimated: false },
         fields: [],
       },
     ],
+    bodyStylePrices: {},
     sections: createSections(),
   },
   testingExplainedEnabled: true,

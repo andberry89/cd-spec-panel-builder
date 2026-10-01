@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import SpecFieldForm from './SpecFieldForm.vue'
-import TrimForm from './TrimForm.vue'
 import VehicleTypeForm from './VehicleTypeForm.vue'
+import PriceForm from './PriceForm.vue'
 import { sectionLabels } from '../data/fieldCatalog'
-import type { PowertrainType, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from '../types/vehicle'
+import type { PowertrainType, PriceValue, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from '../types/vehicle'
 import type { PanelType } from '../types/panel'
 
 const props = defineProps<{
@@ -35,11 +35,14 @@ const updateVehicleType = (vehicleType: VehicleTypeSpec) => {
   updateVehicle({ identity: { ...props.modelValue.identity, vehicleType } })
 }
 
-const updateTrimName = (trimId: string, name: string) => {
-  updateVehicle({
-    trims: props.modelValue.trims.map((trim) => (trim.id === trimId ? { ...trim, name } : trim)),
-  })
+const updateIncludeTrimInHeading = (includeTrimInHeading: boolean) => {
+  updateVehicle({ identity: { ...props.modelValue.identity, includeTrimInHeading } })
 }
+
+const updateTrims = (trims: Vehicle['trims']) => updateVehicle({ trims })
+
+const updateBodyStylePrices = (bodyStylePrices: Record<string, PriceValue>) =>
+  updateVehicle({ bodyStylePrices })
 
 const updatePowertrain = (powertrainType: PowertrainType) => {
   updateVehicle({ powertrainType })
@@ -193,31 +196,27 @@ const displaySectionLabel = (key: SectionKey) => {
       </p>
 
       <div class="field-sections">
+        <PriceForm
+          v-if="panelType === 'firstDrive' && modelValue.sections.price.enabled"
+          :trims="modelValue.trims"
+          :body-styles="modelValue.identity.vehicleType.bodyStyles"
+          :body-style-prices="modelValue.bodyStylePrices"
+          :include-trim-in-heading="modelValue.identity.includeTrimInHeading"
+          @update:trims="updateTrims"
+          @update:body-style-prices="updateBodyStylePrices"
+          @update:include-trim-in-heading="updateIncludeTrimInHeading"
+        />
+
         <SpecFieldForm
-          v-for="sectionKey in sectionKeys.filter((key) => modelValue.sections[key].enabled)"
+          v-for="sectionKey in sectionKeys.filter((key) =>
+            modelValue.sections[key].enabled && !(panelType === 'firstDrive' && key === 'price'),
+          )"
           :key="sectionKey"
           :section-label="displaySectionLabel(sectionKey)"
           :section-key="sectionKey"
           :panel-type="panelType"
           :fields="visibleFields(sectionKey)"
           @update:fields="updateVisibleFields(sectionKey, $event)"
-        />
-      </div>
-    </section>
-    <section class="trims-section" aria-labelledby="trims-heading">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Configurations</p>
-          <h3 id="trims-heading">Trims</h3>
-        </div>
-
-      </div>
-
-      <div class="trim-list">
-        <TrimForm
-          v-if="modelValue.trims[0]"
-          :trim="modelValue.trims[0]"
-          @update:name="updateTrimName(modelValue.trims[0].id, $event)"
         />
       </div>
     </section>
@@ -253,11 +252,6 @@ select {
   background: #fffdf9;
   color: #202124;
   font: inherit;
-}
-
-.trims-section {
-  display: grid;
-  gap: 1rem;
 }
 
 .sections-section {
@@ -317,11 +311,6 @@ h3 {
   background: #202124;
   color: #fffdf9;
   cursor: pointer;
-}
-
-.trim-list {
-  display: grid;
-  gap: 1rem;
 }
 
 .empty-text {
