@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { SectionKey, SpecField } from '../types/vehicle'
+import type { SpecField } from '../types/vehicle'
 import type { PanelType } from '../types/panel'
 
 const props = defineProps<{
   sectionLabel: string
-  sectionKey: SectionKey
   panelType: PanelType
   fields: SpecField[]
 }>()
@@ -13,10 +11,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:fields': [fields: SpecField[]]
 }>()
-
-const headingId = computed(
-  () => `section-fields-${props.sectionLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-)
 
 const updateField = (fieldId: string, changes: Partial<SpecField>) => {
   emit(
@@ -37,24 +31,17 @@ const displayFieldLabel = (field: SpecField) => {
 </script>
 
 <template>
-  <section class="field-editor" :aria-labelledby="headingId">
-    <div class="field-heading">
-      <h4 :id="headingId">{{ sectionLabel }}</h4>
-
-    </div>
-
+  <section class="field-editor" :aria-label="`${sectionLabel} fields`">
     <p v-if="fields.length === 0" class="empty-text">No fields are available in this section.</p>
 
     <div v-else class="field-list">
-      <fieldset v-for="field in fields" :key="field.id" class="field-row">
-        <legend>{{ displayFieldLabel(field) }}</legend>
-
+      <div v-for="field in fields" :key="field.id" class="field-row">
         <label>
-          Value
+          <span>{{ displayFieldLabel(field) }}<small v-if="field.unit"> · {{ field.unit }}</small></span>
           <input
             :value="field.value"
             type="text"
-            :placeholder="field.unit ? `Enter value (${field.unit})` : 'Enter value'"
+            :placeholder="field.id === 'tire-size' ? 'Front / rear (separate with  /  )' : field.unit ? `Enter value (${field.unit})` : 'Enter value'"
             @input="
               updateField(field.id, {
                 value: ($event.target as HTMLInputElement).value,
@@ -63,8 +50,8 @@ const displayFieldLabel = (field: SpecField) => {
           />
         </label>
 
-        <div class="qualifier-control">
-          <span class="qualifier-label">Qualifier</span>
+        <fieldset class="qualifier-control">
+          <legend class="qualifier-label">Qualifier</legend>
 
           <div class="qualifier-options" role="radiogroup" aria-label="Qualifier">
             <label class="qualifier-option">
@@ -100,8 +87,8 @@ const displayFieldLabel = (field: SpecField) => {
               <span>gov ltd</span>
             </label>
           </div>
-        </div>
-      </fieldset>
+        </fieldset>
+      </div>
     </div>
   </section>
 </template>
@@ -109,61 +96,46 @@ const displayFieldLabel = (field: SpecField) => {
 <style scoped>
 .field-editor {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #d8d0c5;
-  border-radius: 0.75rem;
-  background: #fffdf9;
-}
-
-.field-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-h4 {
-  margin: 0;
-  font-size: 1rem;
+  gap: 0.5rem;
 }
 
 .field-list {
   display: grid;
-  gap: 1rem;
+  gap: 0;
 }
 
 .field-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 1fr);
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.5rem;
-}
-
-legend {
-  padding: 0 0.35rem;
-  color: #6a6258;
-  font-size: 0.8rem;
-  font-weight: 700;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #ecece7;
 }
 
 label {
   display: grid;
-  gap: 0.4rem;
-  color: #6a6258;
+  grid-template-columns: minmax(115px, 0.7fr) minmax(130px, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  color: #343530;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 550;
+}
+
+small {
+  color: #777970;
+  font-weight: 400;
 }
 
 input {
   width: 100%;
-  padding: 0.65rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.4rem;
-  background: #fffdf9;
-  color: #202124;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #b8b8b2;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #20211f;
   font: inherit;
 }
 
@@ -173,51 +145,59 @@ input {
 }
 
 .qualifier-control {
-  display: grid;
-  align-content: end;
-  gap: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .qualifier-label {
-  color: #6a6258;
-  font-size: 0.85rem;
-  font-weight: 700;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .qualifier-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .qualifier-option {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  color: #202124;
-  font-size: 0.8rem;
+  gap: 0.25rem;
+  color: #55574f;
+  font-size: 0.75rem;
   font-weight: 400;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .qualifier-option input {
   width: auto;
   margin: 0;
-  accent-color: #202124;
+  accent-color: #315443;
 }
 
 @media (max-width: 640px) {
-  .field-heading {
-    align-items: start;
-    flex-direction: column;
-  }
-
   .field-row {
     grid-template-columns: 1fr;
   }
 
-  .remove-field-button {
-    justify-self: start;
+  label {
+    grid-template-columns: 105px minmax(0, 1fr);
   }
+
+  .qualifier-control {
+    padding-left: 105px;
+  }
+
 }
 </style>

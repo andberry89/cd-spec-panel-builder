@@ -12,6 +12,7 @@ const bodyStyles = [
   'sedan',
   'coupe',
   'hatchback',
+  'suv',
   'wagon',
   'van',
   'convertible',
@@ -36,7 +37,7 @@ const toggleBodyStyle = (style: string, checked: boolean) => {
 
 <template>
   <fieldset class="vehicle-type-form">
-    <legend>Vehicle Type</legend>
+    <legend>Vehicle type details</legend>
 
     <label>
       Engine position
@@ -117,11 +118,10 @@ const toggleBodyStyle = (style: string, checked: boolean) => {
 <style scoped>
 .vehicle-type-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #d8d0c5;
-  border-radius: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem 0 0;
+  border: 0;
 }
 
 legend {
@@ -132,19 +132,20 @@ legend {
 label {
   display: grid;
   gap: 0.4rem;
-  color: #6a6258;
-  font-size: 0.9rem;
-  font-weight: 700;
+  color: #55574f;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 input,
 select {
   width: 100%;
-  padding: 0.7rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.45rem;
-  background: #fffdf9;
-  color: #202124;
+  min-height: 2.3rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #b8b9b1;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #20211f;
   font: inherit;
 }
 
@@ -152,7 +153,10 @@ select {
   display: flex;
   flex-wrap: wrap;
   align-content: start;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0;
+  border: 0;
+  border-top: 1px solid #ecece7;
   min-width: 0;
   padding: 0.75rem;
   border: 1px solid #c8beb1;
@@ -163,8 +167,8 @@ select {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: #202124;
-  font-size: 0.85rem;
+  color: #343530;
+  font-size: 0.8rem;
   font-weight: 400;
 }
 
@@ -174,5 +178,11 @@ select {
 
 .body-style-group {
   grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .vehicle-type-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
