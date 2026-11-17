@@ -1,4 +1,4 @@
-export type PowertrainType = 'combustion' | 'hybrid' | 'electric'
+export type PowertrainType = 'combustion' | 'hybrid' | 'combined' | 'electricSingle' | 'electricDual'
 
 export type SectionKey =
   | 'price'
@@ -21,6 +21,84 @@ export interface SpecField {
 export interface VehicleSection {
   enabled: boolean
   fields: SpecField[]
+}
+
+export type EngineLayout = '' | 'V' | 'inline' | 'flat' | 'W'
+
+export interface EngineDetails {
+  forcedInduction: Array<'twin-turbocharged' | 'turbocharged' | 'supercharged'>
+  intercooled: boolean
+  valvetrain: '' | 'DOHC' | 'SOHC' | 'pushrod'
+  valves: string
+  descriptors: string[]
+  layout: EngineLayout
+  cylinders: string
+  blockMaterial: '' | 'iron' | 'aluminum' | 'aluminum-and-magnesium'
+  headMaterial: '' | 'iron' | 'aluminum'
+  pluralHeads: boolean
+  fuelInjection: '' | 'port' | 'direct' | 'port and direct'
+}
+
+export interface EngineEntry extends EngineDetails {
+  id: string
+  displacementIn3: string
+  displacementCm3: string
+  displacementLiters: string
+  power: string
+  powerRpm: string
+  torque: string
+  torqueRpm: string
+}
+
+export interface EngineSpec {
+  mode: 'single' | 'multiple'
+  engines: EngineEntry[]
+}
+
+export type ElectricMotorType =
+  | ''
+  | 'permanent-magnet synchronous AC'
+  | 'current-excited synchronous AC'
+  | 'induction AC'
+  | 'DC'
+
+export interface ElectricMotor {
+  type: ElectricMotorType
+  power: string
+  torque: string
+  powerRpm: string
+  torqueRpm: string
+}
+
+export interface ElectrifiedPowertrain {
+  motors: [ElectricMotor, ElectricMotor]
+  hybridMotorCount: 1 | 2
+  hybridMotorCurrent: 'AC' | 'DC'
+  combinedPower: string
+  combinedTorque: string
+  batteryCooling: '' | 'air' | 'liquid'
+  batteryChemistry: '' | 'lithium-ion' | 'nickel-metal hydride'
+  batteryCapacity: string
+  plugInHybrid: boolean
+  peakChargeAC: string
+  peakChargeDC: string
+}
+
+export interface PowertrainVariant {
+  id: string
+  type: 'combustion' | 'hybrid' | 'electric'
+  plugInHybrid: boolean
+  engine: EngineEntry
+  motors: [ElectricMotor, ElectricMotor]
+  motorCount: 1 | 2
+  motorCurrent: 'AC' | 'DC'
+  combinedPower: string
+  combinedTorque: string
+  batteryChemistry: '' | 'lithium-ion' | 'nickel-metal hydride'
+  batteryCooling: '' | 'air' | 'liquid'
+  batteryCapacity: string
+  peakChargeAC: string
+  peakChargeDC: string
 }
 
 export interface VehicleIdentity {
@@ -56,7 +134,9 @@ export interface Vehicle {
   id: string
   identity: VehicleIdentity
   powertrainType: PowertrainType
+  engine: EngineSpec
+  electrifiedPowertrain: ElectrifiedPowertrain
+  powertrainVariants: PowertrainVariant[]
   trims: Trim[]
-  bodyStylePrices: Record<string, PriceValue>
   sections: Record<SectionKey, VehicleSection>
 }

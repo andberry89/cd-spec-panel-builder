@@ -2,8 +2,9 @@
 import SpecFieldForm from './SpecFieldForm.vue'
 import VehicleTypeForm from './VehicleTypeForm.vue'
 import PriceForm from './PriceForm.vue'
+import CombinedPowertrainsForm from './CombinedPowertrainsForm.vue'
 import { sectionLabels } from '../data/fieldCatalog'
-import type { PowertrainType, PriceValue, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from '../types/vehicle'
+import type { PowertrainVariant, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from '../types/vehicle'
 import type { PanelType } from '../types/panel'
 
 const props = defineProps<{
@@ -41,12 +42,8 @@ const updateIncludeTrimInHeading = (includeTrimInHeading: boolean) => {
 
 const updateTrims = (trims: Vehicle['trims']) => updateVehicle({ trims })
 
-const updateBodyStylePrices = (bodyStylePrices: Record<string, PriceValue>) =>
-  updateVehicle({ bodyStylePrices })
-
-const updatePowertrain = (powertrainType: PowertrainType) => {
-  updateVehicle({ powertrainType })
-}
+const updatePowertrainVariants = (powertrainVariants: PowertrainVariant[]) =>
+  updateVehicle({ powertrainVariants })
 
 const sectionKeys: SectionKey[] = [
   'price',
@@ -83,30 +80,24 @@ const updateSectionFields = (sectionKey: SectionKey, fields: SpecField[]) => {
   })
 }
 
-const hiddenField = (field: SpecField) => {
-  const electricOnly = ['front-motor', 'rear-motor', 'battery-pack', 'onboard-charger', 'peak-charge-rate']
-  const combustionOnly = ['engine-description', 'displacement', 'engine-power', 'engine-torque']
-  if (props.modelValue.powertrainType === 'combustion' && electricOnly.includes(field.id)) return true
-  if (props.modelValue.powertrainType === 'electric' && combustionOnly.includes(field.id)) return true
-  if (field.id === 'epa-electricity' && props.modelValue.powertrainType !== 'hybrid') return true
-  return false
-}
-
-const visibleFields = (sectionKey: SectionKey) =>
-  props.modelValue.sections[sectionKey].fields.filter((field) => !hiddenField(field))
+const visibleFields = (sectionKey: SectionKey) => props.modelValue.sections[sectionKey].fields
 
 const updateVisibleFields = (sectionKey: SectionKey, fields: SpecField[]) => {
-  const hidden = props.modelValue.sections[sectionKey].fields.filter(hiddenField)
-  updateSectionFields(sectionKey, [...fields, ...hidden])
+  updateSectionFields(sectionKey, fields)
 }
 
 const displaySectionLabel = (key: SectionKey) => {
   if (key === 'testing' && props.panelType === 'firstDrive') return 'Performance (C/D est)'
   if (key === 'testing' && props.panelType === 'longTerm') return 'C/D Test Results: New'
-  if (key === 'fuelEconomy' && props.modelValue.powertrainType === 'electric') {
+  if (key === 'fuelEconomy' && props.modelValue.powertrainVariants.some((variant) => variant.type === 'electric')) {
     return 'Fuel Economy and Charging'
   }
-  if (key === 'powertrain') return 'Engine / Powertrain'
+  if (key === 'powertrain') {
+    return props.modelValue.powertrainVariants.some((variant) => variant.type !== 'combustion')
+      ? 'Powertrains'
+      : 'Engines'
+  }
+  if (key === 'transmission' && props.modelValue.powertrainVariants.some((variant) => variant.type !== 'combustion')) return 'Transmission(s)'
   return sectionLabels[key]
 }
 </script>
@@ -152,18 +143,6 @@ const displaySectionLabel = (key: SectionKey) => {
       @update:model-value="updateVehicleType"
     />
 
-    <label>
-      Powertrain
-      <select
-        :value="modelValue.powertrainType"
-        @change="updatePowertrain(($event.target as HTMLSelectElement).value as PowertrainType)"
-      >
-        <option value="combustion">Combustion</option>
-        <option value="hybrid">Hybrid</option>
-        <option value="electric">Electric</option>
-      </select>
-    </label>
-
     <section class="sections-section" aria-labelledby="sections-heading">
       <div class="section-heading">
         <div>
@@ -199,17 +178,21 @@ const displaySectionLabel = (key: SectionKey) => {
         <PriceForm
           v-if="panelType === 'firstDrive' && modelValue.sections.price.enabled"
           :trims="modelValue.trims"
-          :body-styles="modelValue.identity.vehicleType.bodyStyles"
-          :body-style-prices="modelValue.bodyStylePrices"
           :include-trim-in-heading="modelValue.identity.includeTrimInHeading"
           @update:trims="updateTrims"
-          @update:body-style-prices="updateBodyStylePrices"
           @update:include-trim-in-heading="updateIncludeTrimInHeading"
+        />
+
+        <CombinedPowertrainsForm
+          v-if="modelValue.sections.powertrain.enabled"
+          :model-value="modelValue.powertrainVariants"
+          @update:model-value="updatePowertrainVariants"
         />
 
         <SpecFieldForm
           v-for="sectionKey in sectionKeys.filter((key) =>
-            modelValue.sections[key].enabled && !(panelType === 'firstDrive' && key === 'price'),
+            modelValue.sections[key].enabled && !(panelType === 'firstDrive' && key === 'price') &&
+              key !== 'powertrain',
           )"
           :key="sectionKey"
           :section-label="displaySectionLabel(sectionKey)"
@@ -326,6 +309,12 @@ h3 {
 .field-sections {
   display: grid;
   gap: 1rem;
+}
+
+.help-text {
+  color: #6a6258;
+  font-size: 0.85rem;
+  font-weight: 400;
 }
 
 @media (max-width: 640px) {
