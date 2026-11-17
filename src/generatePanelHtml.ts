@@ -1,6 +1,6 @@
 import { sectionLabels } from './data/fieldCatalog'
 import type { PanelType } from './types/panel'
-import type { SectionKey, SpecField, Vehicle, VehicleTypeSpec } from './types/vehicle'
+import type { ElectricMotor, EngineEntry, PowertrainVariant, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from './types/vehicle'
 
 const sectionOrder: SectionKey[] = [
   'price',
@@ -53,6 +53,82 @@ const outputLabel = (field: SpecField) => {
 
 const row = (field: SpecField) => `${escapeHtml(outputLabel(field))}: ${formatValue(field)}`
 
+const joinWithAnd = (items: string[]) => {
+  if (items.length < 2) return items[0] ?? ''
+  if (items.length === 2) return `${items[0]} and ${items[1]}`
+  return `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`
+}
+
+const engineDescription = (engine: EngineEntry, multiple = false) => {
+  const core: string[] = []
+  const details: string[] = []
+  const induction: string[] = [...engine.forcedInduction]
+  if (engine.intercooled && induction.length) induction.push('intercooled')
+  if (induction.length) core.push(joinWithAnd(induction))
+  const valveTrain = [engine.valvetrain, engine.valves ? `${engine.valves}-valve` : ''].filter(Boolean).join(' ')
+  if (valveTrain) core.push(valveTrain)
+  if (multiple && engine.displacementLiters.trim()) {
+    core.push(`${engine.displacementLiters.trim()}-liter`)
+  }
+  core.push(...engine.descriptors)
+  if (engine.layout && engine.cylinders.trim()) {
+    core.push(`${engine.layout}-${engine.cylinders.trim()}`)
+  } else if (engine.layout) {
+    core.push(engine.layout)
+  } else if (engine.cylinders.trim()) {
+    core.push(`${engine.cylinders.trim()}-cylinder`)
+  }
+  if (!multiple) {
+    if (engine.blockMaterial && engine.headMaterial) {
+      details.push(`${engine.blockMaterial} block and ${engine.headMaterial} head${engine.pluralHeads ? 's' : ''}`)
+    } else if (engine.blockMaterial) {
+      details.push(`${engine.blockMaterial} block`)
+    } else if (engine.headMaterial) {
+      details.push(`${engine.headMaterial} head${engine.pluralHeads ? 's' : ''}`)
+    }
+    if (engine.fuelInjection) details.push(`${engine.fuelInjection} fuel injection`)
+  }
+  return escapeHtml([core.join(' '), details.join(', ')].filter(Boolean).join(', '))
+}
+
+const engineOutputLine = (engine: EngineEntry, multiple = false) => {
+  const description = engineDescription(engine, multiple)
+  const parts = description ? [description] : []
+  if (multiple) {
+    if (engine.power.trim()) parts.push(`${escapeHtml(engine.power.trim())} hp`)
+    if (engine.torque.trim()) parts.push(`${escapeHtml(engine.torque.trim())} lb-ft`)
+  }
+  return parts.join(', ')
+}
+
+const renderEngine = (vehicle: Vehicle, headingOverride?: string) => {
+  const multiple = vehicle.engine.mode === 'multiple'
+  const engines = vehicle.engine.engines
+  if (multiple) {
+    const lines = engines
+      .map((engine) => engineOutputLine(engine, true))
+      .filter(Boolean)
+    return lines.length ? paragraph(headingOverride ?? 'ENGINES', [lines.join('; ')]) : ''
+  }
+  const engine = engines[0]
+  if (!engine) return ''
+  const lines: string[] = []
+  const description = engineDescription(engine)
+  if (description) lines.push(description)
+  const displacement = [
+    engine.displacementIn3.trim() ? `${escapeHtml(engine.displacementIn3.trim())} in<sup>3</sup>` : '',
+    engine.displacementCm3.trim() ? `${escapeHtml(engine.displacementCm3.trim())} cm<sup>3</sup>` : '',
+  ].filter(Boolean)
+  if (displacement.length) lines.push(`Displacement: ${displacement.join(', ')}`)
+  if (engine.power.trim()) {
+    lines.push(`Power: ${escapeHtml(engine.power.trim())} hp${engine.powerRpm.trim() ? ` @ ${escapeHtml(engine.powerRpm.trim())} rpm` : ''}`)
+  }
+  if (engine.torque.trim()) {
+    lines.push(`Torque: ${escapeHtml(engine.torque.trim())} lb-ft${engine.torqueRpm.trim() ? ` @ ${escapeHtml(engine.torqueRpm.trim())} rpm` : ''}`)
+  }
+  return paragraph(headingOverride ?? 'ENGINE', lines)
+}
+
 const paragraph = (heading: string, lines: string[]) => {
   if (!lines.length) return ''
   return `<p><strong>${heading}</strong><br>\n${lines.join('<br>\n')}</p>`
@@ -89,13 +165,8 @@ const formatPrice = (value: string) => {
 
 const renderPrice = (vehicle: Vehicle, fields: SpecField[], panelType: PanelType) => {
   if (panelType === 'firstDrive') {
-    const stylePrices = vehicle.identity.vehicleType.bodyStyles.length > 1
-      ? vehicle.identity.vehicleType.bodyStyles.map((style) => ({
-          label: style[0]?.toUpperCase() + style.slice(1),
-          ...(vehicle.bodyStylePrices[style] ?? { amount: '', estimated: false }),
-        }))
-      : vehicle.trims.map((trim) => ({ label: trim.name.trim(), ...trim.basePrice }))
-    const prices = stylePrices
+    const prices = vehicle.trims
+      .map((trim) => ({ label: trim.name.trim(), ...trim.basePrice }))
       .filter((price) => price.amount?.trim())
     const allEstimated = prices.length > 0 && prices.every((price) => price.estimated)
     const lines = prices.map((price) => {
@@ -114,51 +185,230 @@ const renderPrice = (vehicle: Vehicle, fields: SpecField[], panelType: PanelType
   ))
 }
 
-const renderPowertrain = (
-  fields: SpecField[],
-  transmission: SpecField | undefined,
-  powertrainType: Vehicle['powertrainType'],
-) => {
-  fields = fields.filter((field) => {
-    const motorField = ['front-motor', 'rear-motor', 'combined-power', 'combined-torque', 'battery-pack', 'onboard-charger', 'peak-charge-rate'].includes(field.id)
-    const engineField = ['engine-description', 'displacement', 'engine-power', 'engine-torque'].includes(field.id)
-    if (powertrainType === 'combustion' && motorField) return false
-    if (powertrainType === 'electric' && engineField) return false
-    return true
-  })
-  const hasMotors = fields.some((field) => field.id === 'front-motor' || field.id === 'rear-motor')
-  const engineFields = fields.filter((field) =>
-    ['engine-description', 'displacement', 'engine-power', 'engine-torque'].includes(field.id),
-  )
-  const motorFields = fields.filter((field) =>
-    [
-      'front-motor',
-      'rear-motor',
-      'combined-power',
-      'combined-torque',
-      'battery-pack',
-      'onboard-charger',
-      'peak-charge-rate',
-    ].includes(field.id),
-  )
-  const output: string[] = []
-  if (engineFields.length) {
-    output.push(paragraph('ENGINE', engineFields.map((field) =>
-      field.id === 'engine-description'
-        ? formatValue(field)
-        : field.id === 'displacement'
-          ? `Displacement: ${field.value.split(',')[0]?.trim()} in<sup>3</sup>, ${field.value.split(',')[1]?.trim()} cm<sup>3</sup>`
-          : row(field),
-    )))
+const enginePowertrainLine = (engine: EngineEntry) => engineOutputLine(engine, true)
+
+const motorOutput = (motor: ElectricMotor) => {
+  const values = [
+    motor.power.trim() ? `${escapeHtml(motor.power.trim())} hp` : '',
+    motor.torque.trim() ? `${escapeHtml(motor.torque.trim())} lb-ft` : '',
+  ].filter(Boolean)
+  return values
+}
+
+const batteryLine = (vehicle: Vehicle, includeCooling: boolean) => {
+  const battery = vehicle.electrifiedPowertrain
+  const description = [
+    includeCooling && battery.batteryCooling ? `${battery.batteryCooling}-cooled` : '',
+    battery.batteryChemistry,
+  ].filter(Boolean).join(' ')
+  const capacity = battery.batteryCapacity.trim()
+  if (!description && !capacity) return ''
+  return `Battery Pack: ${escapeHtml(description)}${description && capacity ? ', ' : ''}${capacity ? `${escapeHtml(capacity)} kWh` : ''}`
+}
+
+const chargeRateLine = (vehicle: Vehicle) => {
+  const { peakChargeAC, peakChargeDC } = vehicle.electrifiedPowertrain
+  if (!peakChargeAC.trim() || !peakChargeDC.trim()) return ''
+  return `Peak Charge Rate, AC/DC: ${escapeHtml(peakChargeAC.trim())}/${escapeHtml(peakChargeDC.trim())} kW`
+}
+
+const transmissionLine = (transmission: SpecField | undefined, label: string) =>
+  transmission?.value.trim() ? `${label}: ${formatValue(transmission)}` : ''
+
+const hybridMotorLine = (vehicle: Vehicle) => {
+  const powertrain = vehicle.electrifiedPowertrain
+  const motors = powertrain.motors.slice(0, powertrain.hybridMotorCount)
+  const powers = motors.map((motor) => motor.power.trim() ? escapeHtml(motor.power.trim()) : '').filter(Boolean)
+  const torques = motors.map((motor) => motor.torque.trim() ? escapeHtml(motor.torque.trim()) : '').filter(Boolean)
+  if (!powers.length && !torques.length) return ''
+  const count = powertrain.hybridMotorCount === 2 ? '2 ' : ''
+  const motorLabel = `${count}${powertrain.hybridMotorCurrent} motor${powertrain.hybridMotorCount === 2 ? 's' : ''}`
+  const power = powers.length ? `, ${joinWithAnd(powers)} hp` : ''
+  const torque = torques.length ? `, ${joinWithAnd(torques)} lb-ft` : ''
+  return `${motorLabel}${power}${torque}`
+}
+
+const hybridSystemDetails = (vehicle: Vehicle) => {
+  const powertrain = vehicle.electrifiedPowertrain
+  const details: string[] = []
+  if (powertrain.combinedPower.trim() || powertrain.combinedTorque.trim()) {
+    const combined = [
+      powertrain.combinedPower.trim() ? `${escapeHtml(powertrain.combinedPower.trim())} hp` : '',
+      powertrain.combinedTorque.trim() ? `${escapeHtml(powertrain.combinedTorque.trim())} lb-ft` : '',
+    ].filter(Boolean)
+    details.push(`combined output: ${combined.join(', ')}`)
   }
-  if (motorFields.length) {
-    const motorLines = motorFields.map(row)
-  if (transmission && hasMotors) {
-      motorLines.push(`Transmissions, F/R: ${formatValue(transmission)}`)
+  if (powertrain.batteryChemistry || (powertrain.plugInHybrid && powertrain.batteryCapacity.trim())) {
+    const pack = [
+      powertrain.plugInHybrid && powertrain.batteryCapacity.trim()
+        ? `${escapeHtml(powertrain.batteryCapacity.trim())}-kWh`
+        : '',
+      escapeHtml(powertrain.batteryChemistry),
+    ].filter(Boolean)
+    details.push(`${pack.join(' ')} battery pack`)
+  }
+  if (powertrain.plugInHybrid) {
+    const charge = chargeRateLine(vehicle).replace(/^Peak Charge Rate, AC\/DC: /, 'peak charge rate, AC/DC ')
+    if (charge) details.push(charge)
+  }
+  return details.length ? ` (${details.join('; ')})` : ''
+}
+
+const renderHybridPowertrain = (vehicle: Vehicle, transmission: SpecField | undefined) => {
+  const engine = vehicle.engine.engines[0]
+  const engineLine = engine ? enginePowertrainLine(engine) : ''
+  const motorLine = hybridMotorLine(vehicle)
+  const combination = [engineLine, motorLine].filter(Boolean).join(' + ')
+  const lines = combination ? [`${combination}${hybridSystemDetails(vehicle)}`] : []
+  const transmissionOutput = transmissionLine(transmission, 'Transmission')
+  if (transmissionOutput) lines.push(transmissionOutput)
+  return paragraph('POWERTRAIN', lines)
+}
+
+const variantMotorLine = (variant: PowertrainVariant) => {
+  const motors = variant.motors.slice(0, variant.motorCount)
+  const powers = motors.map((motor) => motor.power.trim() ? escapeHtml(motor.power.trim()) : '').filter(Boolean)
+  const torques = motors.map((motor) => motor.torque.trim() ? escapeHtml(motor.torque.trim()) : '').filter(Boolean)
+  if (!powers.length && !torques.length) return ''
+  const count = variant.motorCount === 2 ? '2 ' : ''
+  const label = `${count}${variant.motorCurrent} motor${variant.motorCount === 2 ? 's' : ''}`
+  return `${label}${powers.length ? `, ${joinWithAnd(powers)} hp` : ''}${torques.length ? `, ${joinWithAnd(torques)} lb-ft` : ''}`
+}
+
+const variantSystemDetails = (variant: PowertrainVariant, includeCombinedOutput = true) => {
+  const details: string[] = []
+  if (includeCombinedOutput && (variant.combinedPower.trim() || variant.combinedTorque.trim())) {
+    const output = [
+      variant.combinedPower.trim() ? `${escapeHtml(variant.combinedPower.trim())} hp` : '',
+      variant.combinedTorque.trim() ? `${escapeHtml(variant.combinedTorque.trim())} lb-ft` : '',
+    ].filter(Boolean)
+    details.push(`combined output: ${output.join(', ')}`)
+  }
+  if (variant.batteryChemistry) {
+    const cooling = variant.batteryCooling ? `${variant.batteryCooling}-cooled ` : ''
+    const pack = (variant.type === 'electric' || variant.plugInHybrid) && variant.batteryCapacity.trim()
+      ? `${escapeHtml(variant.batteryCapacity.trim())}-kWh ${escapeHtml(variant.batteryChemistry)}`
+      : escapeHtml(variant.batteryChemistry)
+    details.push(variant.type === 'electric'
+      ? `battery pack: ${cooling}${escapeHtml(variant.batteryChemistry)}${variant.batteryCapacity.trim() ? `, ${escapeHtml(variant.batteryCapacity.trim())} kWh` : ''}`
+      : `${pack} battery pack`)
+  }
+  if (variant.type === 'electric' || variant.plugInHybrid) {
+    const { peakChargeAC, peakChargeDC } = variant
+    if (peakChargeAC.trim() && peakChargeDC.trim()) {
+      details.push(`peak charge rate, AC/DC ${escapeHtml(peakChargeAC.trim())}/${escapeHtml(peakChargeDC.trim())} kW`)
+    } else if (peakChargeAC.trim()) {
+      details.push(`peak charge rate, AC ${escapeHtml(peakChargeAC.trim())} kW`)
+    } else if (peakChargeDC.trim()) {
+      details.push(`peak charge rate, DC ${escapeHtml(peakChargeDC.trim())} kW`)
     }
-    output.push(paragraph('POWERTRAIN', motorLines))
   }
-  return output.filter(Boolean).join('\n')
+  return details.length ? ` (${details.join('; ')})` : ''
+}
+
+const formatPowertrainVariant = (variant: PowertrainVariant) => {
+  if (variant.type === 'electric') {
+    const motors = variant.motors.slice(0, variant.motorCount)
+    const lines = motors.map((motor, index) => {
+      const output = [
+        motor.type ? escapeHtml(motor.type) : '',
+        motor.power.trim() ? `${escapeHtml(motor.power.trim())} hp` : '',
+        motor.torque.trim() ? `${escapeHtml(motor.torque.trim())} lb-ft` : '',
+      ].filter(Boolean)
+      if (!output.length) return ''
+      const label = variant.motorCount === 1 ? 'Motor' : index === 0 ? 'Front Motor' : 'Rear Motor'
+      return `${label}: ${output.join(', ')}`
+    }).filter(Boolean)
+    if (variant.combinedPower.trim()) lines.push(`Combined Power: ${escapeHtml(variant.combinedPower.trim())} hp`)
+    if (variant.combinedTorque.trim()) lines.push(`Combined Torque: ${escapeHtml(variant.combinedTorque.trim())} lb-ft`)
+    const details = variantSystemDetails(variant, false).replace(/^ \(/, '').replace(/\)$/, '')
+    if (details) lines.push(details)
+    return lines.join('; ')
+  }
+  const engine = enginePowertrainLine(variant.engine)
+  if (variant.type === 'combustion') return engine
+  const motor = variantMotorLine(variant)
+  const combination = [engine, motor].filter(Boolean).join(' + ')
+  return `${combination}${variantSystemDetails(variant)}`
+}
+
+const renderCombinedPowertrains = (vehicle: Vehicle, transmission: SpecField | undefined) => {
+  const onlyOneCombustionEngine = vehicle.powertrainVariants.length === 1
+    && vehicle.powertrainVariants[0]?.type === 'combustion'
+  if (onlyOneCombustionEngine) {
+    const engine = vehicle.powertrainVariants[0]?.engine
+    if (!engine) return ''
+    return renderEngine({ ...vehicle, engine: { mode: 'single', engines: [engine] } }, 'ENGINES')
+  }
+  const lines = vehicle.powertrainVariants.map(formatPowertrainVariant).filter(Boolean)
+  const hasElectrifiedOption = vehicle.powertrainVariants.some((variant) => variant.type !== 'combustion')
+  if (hasElectrifiedOption) {
+    const transmissionOutput = transmissionLine(transmission, 'Transmissions')
+    if (transmissionOutput) lines.push(transmissionOutput)
+  }
+  // The heading describes the propulsion systems represented in the options:
+  // combustion-only variants are ENGINES; any electrified variant makes them POWERTRAINS.
+  const heading = vehicle.powertrainVariants.length > 0
+    && vehicle.powertrainVariants.every((variant) => variant.type === 'combustion')
+    ? 'ENGINES'
+    : 'POWERTRAINS'
+  return paragraph(heading, lines)
+}
+
+const renderSingleMotorEv = (vehicle: Vehicle, transmission: SpecField | undefined) => {
+  const motor = vehicle.electrifiedPowertrain.motors[0]
+  const inlinePower = motor.power.trim() && !motor.powerRpm.trim() ? `${escapeHtml(motor.power.trim())} hp` : ''
+  const inlineTorque = motor.torque.trim() && !motor.torqueRpm.trim() ? `${escapeHtml(motor.torque.trim())} lb-ft` : ''
+  const motorDescription = [motor.type ? escapeHtml(motor.type) : '', inlinePower, inlineTorque].filter(Boolean)
+  const lines: string[] = []
+  if (motorDescription.length) lines.push(`Motor: ${motorDescription.join(', ')}`)
+  if (motor.powerRpm.trim() && motor.power.trim()) {
+    lines.push(`Power: ${escapeHtml(motor.power.trim())} hp @ ${escapeHtml(motor.powerRpm.trim())} rpm`)
+  }
+  if (motor.torqueRpm.trim() && motor.torque.trim()) {
+    lines.push(`Torque: ${escapeHtml(motor.torque.trim())} lb-ft @ ${escapeHtml(motor.torqueRpm.trim())} rpm`)
+  }
+  const battery = batteryLine(vehicle, true)
+  if (battery) lines.push(battery)
+  const charge = chargeRateLine(vehicle)
+  if (charge) lines.push(charge)
+  const transmissionOutput = transmissionLine(transmission, 'Transmission')
+  if (transmissionOutput) lines.push(transmissionOutput)
+  return paragraph('POWERTRAIN', lines)
+}
+
+const renderDualMotorEv = (vehicle: Vehicle, transmission: SpecField | undefined) => {
+  const { motors, combinedPower, combinedTorque } = vehicle.electrifiedPowertrain
+  const lines = motors.map((motor, index) => {
+    const description = [motor.type ? escapeHtml(motor.type) : '', ...motorOutput(motor)].filter(Boolean)
+    return description.length ? `${index === 0 ? 'Front' : 'Rear'} Motor: ${description.join(', ')}` : ''
+  }).filter(Boolean)
+  if (combinedPower.trim()) lines.push(`Combined Power: ${escapeHtml(combinedPower.trim())} hp`)
+  if (combinedTorque.trim()) lines.push(`Combined Torque: ${escapeHtml(combinedTorque.trim())} lb-ft`)
+  const battery = batteryLine(vehicle, true)
+  if (battery) lines.push(battery)
+  const charge = chargeRateLine(vehicle)
+  if (charge) lines.push(charge)
+  const transmissionOutput = transmissionLine(transmission, 'Transmissions, F/R')
+  if (transmissionOutput) lines.push(transmissionOutput)
+  return paragraph('POWERTRAIN', lines)
+}
+
+const renderPowertrain = (vehicle: Vehicle, transmission: SpecField | undefined) => {
+  switch (vehicle.powertrainType) {
+    case 'combustion':
+      return renderEngine(vehicle)
+    case 'hybrid':
+      return renderHybridPowertrain(vehicle, transmission)
+    case 'combined':
+      return renderCombinedPowertrains(vehicle, transmission)
+    case 'electricSingle':
+      return renderSingleMotorEv(vehicle, transmission)
+    case 'electricDual':
+      return renderDualMotorEv(vehicle, transmission)
+    default:
+      return ''
+  }
 }
 
 const renderDimensions = (fields: SpecField[]) =>
@@ -223,21 +473,34 @@ const renderFuelEconomy = (vehicle: Vehicle, fields: SpecField[]) => {
   const epaIds = ['epa-fuel-economy', 'epa-electricity', 'epa-range']
   const tested = fields.filter((field) => !epaIds.includes(field.id))
   const epa = fields.filter((field) => epaIds.includes(field.id))
-  const fuelHeading = vehicle.powertrainType === 'electric'
+  const isElectric = vehicle.powertrainVariants.length > 0
+    && vehicle.powertrainVariants.every((variant) => variant.type === 'electric')
+  const hasPhevVariant = vehicle.powertrainType === 'combined'
+    && vehicle.powertrainVariants.some((variant) => variant.plugInHybrid)
+  const allEpaEstimated = epa.length > 0 && epa.every((field) => field.qualifier === 'C/D est')
+  const fuelHeading = isElectric
     ? '<em><strong>C/D</strong></em><strong> FUEL ECONOMY AND CHARGING</strong>'
     : '<em><strong>C/D</strong></em><strong> FUEL ECONOMY</strong>'
   const epaLines = epa.map((field) => {
     const label = field.id === 'epa-fuel-economy'
       ? 'Combined/City/Highway'
       : field.id === 'epa-range'
-        ? 'Range'
+        ? hasPhevVariant ? 'EV Range (PHEV)' : 'Range'
         : field.label
-    const value = field.id === 'epa-fuel-economy'
-      ? formatValue({ ...field, unit: vehicle.powertrainType === 'electric' ? 'MPGe' : 'mpg' })
-      : formatValue(field)
-    return `${escapeHtml(label)}: ${value}`
+    const qualifier = field.qualifier === 'C/D est' && !allEpaEstimated
+      ? ' <em>(C/D est)</em>'
+      : ''
+    const valueField = {
+      ...field,
+      ...(field.id === 'epa-fuel-economy' ? { unit: isElectric ? 'MPGe' : 'mpg' } : {}),
+      qualifier: field.qualifier === 'C/D est' && (allEpaEstimated || qualifier) ? undefined : field.qualifier,
+    }
+    return `${escapeHtml(label)}: ${formatValue(valueField)}${qualifier}`
   })
-  return [richHeadingParagraph(fuelHeading, tested.map(row)), paragraph('EPA FUEL ECONOMY', epaLines)]
+  const epaSection = allEpaEstimated
+    ? richHeadingParagraph('<strong>EPA FUEL ECONOMY (<em>C/D</em> EST)</strong>', epaLines)
+    : paragraph('EPA FUEL ECONOMY', epaLines)
+  return [richHeadingParagraph(fuelHeading, tested.map(row)), epaSection]
     .filter(Boolean)
     .join('\n')
 }
@@ -248,27 +511,25 @@ const renderSection = (vehicle: Vehicle, key: SectionKey, panelType: PanelType) 
     return renderPrice(vehicle, populated(vehicle, key), panelType)
   }
   const fields = populated(vehicle, key)
-  if (!fields.length) return ''
-
-  if (key === 'price') return renderPrice(vehicle, fields, panelType)
   if (key === 'powertrain') {
     const transmission = vehicle.sections.transmission.enabled
       ? populated(vehicle, 'transmission')[0]
       : undefined
-    return renderPowertrain(fields, transmission, vehicle.powertrainType)
+    return renderPowertrain(vehicle, transmission)
   }
+  if (!fields.length) return ''
+
+  if (key === 'price') return renderPrice(vehicle, fields, panelType)
   if (key === 'transmission') {
-    if (populated(vehicle, 'powertrain').some(
-      (field) => field.id === 'front-motor' || field.id === 'rear-motor',
-    )) return ''
+    if (vehicle.powertrainVariants.some((variant) => variant.type !== 'combustion')) return ''
     return paragraph('TRANSMISSION', fields.map((field) => formatValue(field)))
   }
   if (key === 'dimensions') return renderDimensions(fields)
   if (key === 'testing') return renderTesting(fields, panelType)
   if (key === 'fuelEconomy') {
-    const relevantFields = vehicle.powertrainType === 'hybrid'
-      ? fields
-      : fields.filter((field) => field.id !== 'epa-electricity')
+    const relevantFields = vehicle.powertrainType === 'combustion'
+      ? fields.filter((field) => field.id !== 'epa-electricity')
+      : fields
     return renderFuelEconomy(vehicle, relevantFields)
   }
 

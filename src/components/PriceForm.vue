@@ -1,22 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { PriceValue, Trim } from '../types/vehicle'
+import type { Trim } from '../types/vehicle'
 import TrimForm from './TrimForm.vue'
 
 const props = defineProps<{
   trims: Trim[]
-  bodyStyles: string[]
-  bodyStylePrices: Record<string, PriceValue>
   includeTrimInHeading: boolean
 }>()
 
 const emit = defineEmits<{
   'update:trims': [trims: Trim[]]
-  'update:body-style-prices': [prices: Record<string, PriceValue>]
   'update:include-trim-in-heading': [include: boolean]
 }>()
-
-const pricesByBodyStyle = computed(() => props.bodyStyles.length > 1)
 
 const updateTrim = (trimId: string, changes: Partial<Trim>) => {
   emit(
@@ -36,14 +30,6 @@ const removeTrim = (trimId: string) => {
   emit('update:trims', props.trims.filter((trim) => trim.id !== trimId))
 }
 
-const updateBodyStylePrice = (style: string, changes: Partial<PriceValue>) => {
-  emit('update:body-style-prices', {
-    ...props.bodyStylePrices,
-    [style]: { amount: '', estimated: false, ...props.bodyStylePrices[style], ...changes },
-  })
-}
-
-const displayStyle = (style: string) => style[0]?.toUpperCase() + style.slice(1)
 </script>
 
 <template>
@@ -52,38 +38,15 @@ const displayStyle = (style: string) => style[0]?.toUpperCase() + style.slice(1)
       <div>
         <p class="eyebrow">Price</p>
         <h4 id="price-form-heading">
-          {{ pricesByBodyStyle ? 'Base price by body style' : 'Base price by trim' }}
+          Base price by trim
         </h4>
       </div>
-      <button v-if="!pricesByBodyStyle" type="button" class="add-button" @click="addTrim">
+      <button type="button" class="add-button" @click="addTrim">
         Add trim
       </button>
     </div>
 
-    <div v-if="pricesByBodyStyle" class="price-list">
-      <div v-for="style in bodyStyles" :key="style" class="price-row">
-        <label>
-          {{ displayStyle(style) }} base price
-          <input
-            :value="bodyStylePrices[style]?.amount ?? ''"
-            type="text"
-            inputmode="decimal"
-            :placeholder="`Enter ${style} base price`"
-            @input="updateBodyStylePrice(style, { amount: ($event.target as HTMLInputElement).value })"
-          />
-        </label>
-        <label class="estimate-toggle">
-          <input
-            :checked="bodyStylePrices[style]?.estimated ?? false"
-            type="checkbox"
-            @change="updateBodyStylePrice(style, { estimated: ($event.target as HTMLInputElement).checked })"
-          />
-          <em>C/D</em> estimate
-        </label>
-      </div>
-    </div>
-
-    <div v-else class="trim-list">
+    <div class="trim-list">
       <label class="heading-toggle">
         <input
           :checked="includeTrimInHeading"
@@ -147,13 +110,14 @@ h4 {
   font: inherit;
 }
 
-.price-list,
 .trim-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 300px));
   gap: 0.75rem;
 }
 
 .heading-toggle {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -163,15 +127,6 @@ h4 {
 
 .heading-toggle input {
   width: auto;
-}
-
-.price-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 0.75rem;
-  color: #6a6258;
-  font-weight: 700;
 }
 
 input {
@@ -184,17 +139,10 @@ input {
   font: inherit;
 }
 
-.estimate-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding-bottom: 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 400;
-  white-space: nowrap;
+@media (max-width: 640px) {
+  .trim-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.estimate-toggle input {
-  width: auto;
-}
 </style>

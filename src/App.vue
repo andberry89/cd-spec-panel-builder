@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import VehicleForm from './components/VehicleForm.vue'
 import type { Panel } from './types/panel'
-import type { SectionKey, Vehicle, VehicleSection, VehicleTypeSpec } from './types/vehicle'
+import type { ElectricMotor, EngineEntry, ElectrifiedPowertrain, PowertrainVariant, SectionKey, Vehicle, VehicleSection, VehicleTypeSpec } from './types/vehicle'
 import { createEmptyFields } from './data/fieldCatalog'
 import { generatePanelHtml } from './generatePanelHtml'
 
@@ -20,9 +20,75 @@ const createVehicleType = (): VehicleTypeSpec => ({
   bodyStyles: [],
 })
 
+const createEngineEntry = (id: string): EngineEntry => ({
+  id,
+  forcedInduction: [],
+  intercooled: false,
+  valvetrain: '',
+  valves: '',
+  descriptors: [],
+  layout: '',
+  cylinders: '',
+  blockMaterial: '',
+  headMaterial: '',
+  pluralHeads: true,
+  fuelInjection: '',
+  displacementIn3: '',
+  displacementCm3: '',
+  displacementLiters: '',
+  power: '',
+  powerRpm: '',
+  torque: '',
+  torqueRpm: '',
+})
+
+const createEngine = (id: string) => ({
+  mode: 'single' as const,
+  engines: [createEngineEntry(id)],
+})
+
+const createMotor = (): ElectricMotor => ({
+  type: '',
+  power: '',
+  torque: '',
+  powerRpm: '',
+  torqueRpm: '',
+})
+
+const createElectrifiedPowertrain = (): ElectrifiedPowertrain => ({
+  motors: [createMotor(), createMotor()],
+  hybridMotorCount: 2,
+  hybridMotorCurrent: 'AC',
+  combinedPower: '',
+  combinedTorque: '',
+  batteryCooling: '',
+  batteryChemistry: '',
+  batteryCapacity: '',
+  plugInHybrid: false,
+  peakChargeAC: '',
+  peakChargeDC: '',
+})
+
+const createPowertrainVariant = (id: string): PowertrainVariant => ({
+  id,
+  type: 'combustion',
+  plugInHybrid: false,
+  engine: createEngineEntry(`${id}-engine`),
+  motors: [createMotor(), createMotor()],
+  motorCount: 2,
+  motorCurrent: 'AC',
+  combinedPower: '',
+  combinedTorque: '',
+  batteryChemistry: '',
+  batteryCooling: '',
+  batteryCapacity: '',
+  peakChargeAC: '',
+  peakChargeDC: '',
+})
+
 const createSections = (): Record<SectionKey, VehicleSection> => ({
   price: { ...createSection(), fields: createEmptyFields('price') },
-  powertrain: { ...createSection(), fields: createEmptyFields('powertrain') },
+  powertrain: createSection(),
   transmission: { ...createSection(), fields: createEmptyFields('transmission') },
   chassis: { ...createSection(), fields: createEmptyFields('chassis') },
   dimensions: { ...createSection(), fields: createEmptyFields('dimensions') },
@@ -40,7 +106,10 @@ const createVehicleTwo = (): Vehicle => ({
     includeTrimInHeading: false,
     vehicleType: createVehicleType(),
   },
-  powertrainType: 'combustion',
+  powertrainType: 'combined',
+  engine: createEngine('vehicle-two-engine-one'),
+  electrifiedPowertrain: createElectrifiedPowertrain(),
+  powertrainVariants: [createPowertrainVariant('vehicle-two-powertrain-one')],
   trims: [
     {
       id: 'vehicle-two-trim-one',
@@ -49,7 +118,6 @@ const createVehicleTwo = (): Vehicle => ({
       fields: [],
     },
   ],
-  bodyStylePrices: {},
   sections: createSections(),
 })
 
@@ -64,7 +132,10 @@ const panel = ref<Panel>({
       includeTrimInHeading: false,
       vehicleType: createVehicleType(),
     },
-    powertrainType: 'combustion',
+    powertrainType: 'combined',
+    engine: createEngine('engine-one'),
+    electrifiedPowertrain: createElectrifiedPowertrain(),
+    powertrainVariants: [createPowertrainVariant('powertrain-one')],
     trims: [
       {
         id: 'trim-one',
@@ -73,7 +144,6 @@ const panel = ref<Panel>({
         fields: [],
       },
     ],
-    bodyStylePrices: {},
     sections: createSections(),
   },
   testingExplainedEnabled: true,
