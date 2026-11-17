@@ -19,7 +19,7 @@ const updateBasePrice = (changes: Partial<PriceValue>) => {
 
 <template>
   <fieldset class="trim-form">
-    <legend>Trim or configuration</legend>
+    <legend class="visually-hidden">Trim or configuration</legend>
 
     <label>
       Trim or configuration
@@ -61,10 +61,12 @@ const updateBasePrice = (changes: Partial<PriceValue>) => {
 <style scoped>
 .trim-form {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #d8d0c5;
-  border-radius: 0.75rem;
+  grid-template-columns: minmax(110px, 1fr) minmax(130px, 1fr) minmax(130px, auto) auto;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border: 0;
+  border-bottom: 1px solid #ecece7;
 }
 
 legend {
@@ -74,19 +76,20 @@ legend {
 
 label {
   display: grid;
-  gap: 0.4rem;
-  color: #6a6258;
-  font-size: 0.9rem;
-  font-weight: 700;
+  gap: 0.3rem;
+  color: #55574f;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 input {
   width: 100%;
-  padding: 0.7rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.45rem;
-  background: #fffdf9;
-  color: #202124;
+  min-height: 2.3rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #b8b9b1;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #20211f;
   font: inherit;
 }
 
@@ -99,6 +102,33 @@ input {
 
 .estimate-toggle input {
   width: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.remove-button {
+  min-height: 2.2rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #c6a8a2;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #873e36;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .trim-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 </style>

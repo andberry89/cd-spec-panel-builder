@@ -7,5 +7,4 @@ export interface Panel {
   vehicleOne: Vehicle
   vehicleTwo?: Vehicle
   testingExplainedEnabled: boolean
-  generatedHtml: string
 }
