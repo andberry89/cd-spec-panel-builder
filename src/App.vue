@@ -181,7 +181,7 @@ const removeVehicleTwo = () => {
       <p class="eyebrow">C/D Spec Panel Builder</p>
       <h1>Build a vehicle specifications panel</h1>
       <p class="intro">
-        Enter structured vehicle data and generate clean HTML for the publishing workflow.
+        Enter vehicle details to generate clean HTML for your publishing workflow.
       </p>
       <label class="panel-type-control">
         Panel template
