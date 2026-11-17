@@ -33,11 +33,10 @@ const removeTrim = (trimId: string) => {
 </script>
 
 <template>
-  <section class="price-form" aria-labelledby="price-form-heading">
+  <section class="price-form" aria-label="Base price by trim">
     <div class="price-form-heading">
       <div>
-        <p class="eyebrow">Price</p>
-        <h4 id="price-form-heading">
+        <h4>
           Base price by trim
         </h4>
       </div>
@@ -56,16 +55,14 @@ const removeTrim = (trimId: string) => {
         Include trim in vehicle heading
       </label>
       <TrimForm
-        v-for="(trim, index) in trims"
+        v-for="trim in trims"
         :key="trim.id"
         :trim="trim"
         :can-remove="trims.length > 1"
         @remove="removeTrim(trim.id)"
         @update:name="updateTrim(trim.id, { name: $event })"
         @update:base-price="updateTrim(trim.id, { basePrice: $event })"
-      >
-        <template #default>Trim {{ index + 1 }}</template>
-      </TrimForm>
+      />
     </div>
   </section>
 </template>
@@ -73,10 +70,7 @@ const removeTrim = (trimId: string) => {
 <style scoped>
 .price-form {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #d8d0c5;
-  border-radius: 0.75rem;
+  gap: 0.65rem;
 }
 
 .price-form-heading {
@@ -86,34 +80,25 @@ const removeTrim = (trimId: string) => {
   gap: 1rem;
 }
 
-.eyebrow {
-  margin: 0 0 0.25rem;
-  color: #6a6258;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 h4 {
   margin: 0;
   font-size: 1rem;
 }
 
 .add-button {
-  padding: 0.6rem 0.8rem;
-  border: 0;
-  border-radius: 0.45rem;
-  background: #202124;
-  color: #fffdf9;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #aeb5ac;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #315443;
   cursor: pointer;
   font: inherit;
 }
 
 .trim-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 300px));
-  gap: 0.75rem;
+  gap: 0;
 }
 
 .heading-toggle {
@@ -121,8 +106,8 @@ h4 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #6a6258;
-  font-size: 0.9rem;
+  color: #55574f;
+  font-size: 0.82rem;
 }
 
 .heading-toggle input {
@@ -131,18 +116,13 @@ h4 {
 
 input {
   width: 100%;
-  padding: 0.7rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.45rem;
-  background: #fffdf9;
-  color: #202124;
+  min-height: 2.3rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #b8b9b1;
+  border-radius: 0.25rem;
+  background: #fff;
+  color: #20211f;
   font: inherit;
-}
-
-@media (max-width: 640px) {
-  .trim-list {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 </style>

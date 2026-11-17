@@ -1,5 +1,3 @@
-export type PowertrainType = 'combustion' | 'hybrid' | 'combined' | 'electricSingle' | 'electricDual'
-
 export type SectionKey =
   | 'price'
   | 'powertrain'
@@ -40,7 +38,6 @@ export interface EngineDetails {
 }
 
 export interface EngineEntry extends EngineDetails {
-  id: string
   displacementIn3: string
   displacementCm3: string
   displacementLiters: string
@@ -48,11 +45,6 @@ export interface EngineEntry extends EngineDetails {
   powerRpm: string
   torque: string
   torqueRpm: string
-}
-
-export interface EngineSpec {
-  mode: 'single' | 'multiple'
-  engines: EngineEntry[]
 }
 
 export type ElectricMotorType =
@@ -66,22 +58,6 @@ export interface ElectricMotor {
   type: ElectricMotorType
   power: string
   torque: string
-  powerRpm: string
-  torqueRpm: string
-}
-
-export interface ElectrifiedPowertrain {
-  motors: [ElectricMotor, ElectricMotor]
-  hybridMotorCount: 1 | 2
-  hybridMotorCurrent: 'AC' | 'DC'
-  combinedPower: string
-  combinedTorque: string
-  batteryCooling: '' | 'air' | 'liquid'
-  batteryChemistry: '' | 'lithium-ion' | 'nickel-metal hydride'
-  batteryCapacity: string
-  plugInHybrid: boolean
-  peakChargeAC: string
-  peakChargeDC: string
 }
 
 export interface PowertrainVariant {
@@ -133,9 +109,6 @@ export interface PriceValue {
 export interface Vehicle {
   id: string
   identity: VehicleIdentity
-  powertrainType: PowertrainType
-  engine: EngineSpec
-  electrifiedPowertrain: ElectrifiedPowertrain
   powertrainVariants: PowertrainVariant[]
   trims: Trim[]
   sections: Record<SectionKey, VehicleSection>

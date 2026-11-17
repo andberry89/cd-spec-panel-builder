@@ -19,9 +19,10 @@ Vite prints the local address. The editor runs in the browser and currently keep
 - One required vehicle and one optional second vehicle.
 - Vehicle identity, vehicle type, section controls, specifications, and repeatable First Drive trim prices.
 - Ordered engine and powertrain variants, including combustion, hybrid, and electric options.
+- One panel-level Specifications heading, ordered vehicle blocks, and a shared testing link.
 - Generated HTML, rendered preview, and copy-to-clipboard.
 
-The HTML textarea is read-only. Two-vehicle output is currently generated per vehicle and joined with a horizontal rule, so headings and testing links are repeated. See `docs/TECH-HANDOFF.md` for current limitations and next steps.
+The HTML textarea is read-only. Panel data stays in memory and is cleared when the page is refreshed. Vehicle sections and powertrain options are grouped in compact disclosure panels, with the output preview kept alongside the form on larger screens.
 
 ## Useful commands
 
