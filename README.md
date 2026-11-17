@@ -1,54 +1,35 @@
-# cd-spec-panel-builder
+# C/D Spec Panel Builder
 
-This template should help get you started developing with Vue 3 in Vite.
+A local-first Vue application for entering vehicle specifications and generating Car and Driver-style specification-panel HTML.
 
-## Recommended IDE Setup
+## Run locally
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+Requirements: Node.js `^22.18.0` or `>=24.12.0` and npm.
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+Vite prints the local address. The editor runs in the browser and currently keeps its panel data in memory; refreshing the page clears the draft.
+
+## What it supports today
+
+- First Drive, Tested Specs, and Long-Term Test output modes.
+- One required vehicle and one optional second vehicle.
+- Vehicle identity, vehicle type, section controls, specifications, and repeatable First Drive trim prices.
+- Ordered engine and powertrain variants, including combustion, hybrid, and electric options.
+- Generated HTML, rendered preview, and copy-to-clipboard.
+
+The HTML textarea is read-only. Two-vehicle output is currently generated per vehicle and joined with a horizontal rule, so headings and testing links are repeated. See `docs/TECH-HANDOFF.md` for current limitations and next steps.
+
+## Useful commands
 
 ```sh
+npm run dev
+npm run type-check
+npm run test:unit
 npm run build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+The current test suite has a single app-mount smoke test. The configured lint scripts use autofix; inspect their effects before running them on a working tree with changes.
