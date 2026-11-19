@@ -76,6 +76,7 @@ const toggleBodyStyle = (style: string, checked: boolean) => {
         <option value="all">All-wheel drive</option>
         <option value="rear/4">Rear/4-wheel drive</option>
         <option value="rear/all">Rear/all-wheel drive</option>
+        <option value="rear-or-all">Rear- or all-wheel drive</option>
       </select>
     </label>
 

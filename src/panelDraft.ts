@@ -1,3 +1,4 @@
+import { createEmptyFields } from './data/fieldCatalog'
 import type { Panel } from './types/panel'
 import type { SectionKey } from './types/vehicle'
 
@@ -17,6 +18,7 @@ const sectionKeys: SectionKey[] = [
   'testing',
   'interiorSound',
   'fuelEconomy',
+  'warranty',
 ]
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -113,6 +115,7 @@ const isVehicle = (value: unknown) => {
 
   return sectionKeys.every((key) => {
     const section = sections[key]
+    if (key === 'warranty' && section === undefined) return true
     return (
       isRecord(section) &&
       isBoolean(section.enabled) &&
@@ -148,8 +151,12 @@ export const loadPanelDraft = (): LoadedPanelDraft | null => {
       !isPanel(draft.panel) ||
       (draft.htmlOverride !== undefined && !isString(draft.htmlOverride))
     ) return null
+    const panel = draft.panel
+    for (const vehicle of [panel.vehicleOne, panel.vehicleTwo].filter((item) => item !== undefined)) {
+      vehicle.sections.warranty ??= { enabled: true, fields: createEmptyFields('warranty') }
+    }
     return {
-      panel: draft.panel,
+      panel,
       ...(draft.htmlOverride === undefined ? {} : { htmlOverride: draft.htmlOverride }),
     }
   } catch {

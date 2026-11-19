@@ -74,6 +74,7 @@ const createSections = (): Record<SectionKey, VehicleSection> => ({
   testing: { ...createSection(), fields: createEmptyFields('testing') },
   interiorSound: { ...createSection(), fields: createEmptyFields('interiorSound') },
   fuelEconomy: { ...createSection(), fields: createEmptyFields('fuelEconomy') },
+  warranty: { ...createSection(), fields: createEmptyFields('warranty') },
 })
 
 const createVehicleTwo = (): Vehicle => ({

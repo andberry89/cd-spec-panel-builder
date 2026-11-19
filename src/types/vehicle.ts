@@ -7,6 +7,7 @@ export type SectionKey =
   | 'testing'
   | 'interiorSound'
   | 'fuelEconomy'
+  | 'warranty'
 
 export interface SpecField {
   id: string
@@ -31,7 +32,7 @@ export interface EngineDetails {
   descriptors: string[]
   layout: EngineLayout
   cylinders: string
-  blockMaterial: '' | 'iron' | 'aluminum' | 'aluminum-and-magnesium'
+  blockMaterial: '' | 'iron' | 'aluminum' | 'aluminum-and-magnesium' | 'iron-and-aluminum'
   headMaterial: '' | 'iron' | 'aluminum'
   pluralHeads: boolean
   fuelInjection: '' | 'port' | 'direct' | 'port and direct'
@@ -88,7 +89,7 @@ export interface VehicleIdentity {
 export interface VehicleTypeSpec {
   enginePosition: '' | 'front' | 'mid' | 'rear'
   motorPositions: Array<'front' | 'mid' | 'rear'>
-  driveLayout: '' | 'front' | 'rear' | 'all' | 'rear/4' | 'rear/all'
+  driveLayout: '' | 'front' | 'rear' | 'all' | 'rear/4' | 'rear/all' | 'rear-or-all'
   passengers: string
   doors: string
   bodyStyles: string[]

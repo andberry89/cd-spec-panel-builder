@@ -15,6 +15,7 @@ export const sectionLabels: Record<SectionKey, string> = {
   testing: 'C/D Test Results',
   interiorSound: 'Interior Sound',
   fuelEconomy: 'Fuel Economy and Charging',
+  warranty: 'Warranty',
 }
 
 export const fieldCatalog: Record<SectionKey, FieldDefinition[]> = {
@@ -65,11 +66,19 @@ export const fieldCatalog: Record<SectionKey, FieldDefinition[]> = {
     { id: 'observed-fuel-economy', label: 'Observed' },
     { id: 'highway-driving', label: '75-mph Highway Driving' },
     { id: 'highway-range', label: '75-mph Highway Range', unit: 'mi' },
+    { id: 'unscheduled-oil-additions', label: 'Unscheduled Oil Additions', unit: 'qt' },
     { id: 'average-dc-rate', label: 'Average DC Fast-Charge Rate, 10–90%', unit: 'kW' },
     { id: 'dc-charge-time', label: 'DC Fast-Charge Time, 10–90%', unit: 'min' },
     { id: 'epa-fuel-economy', label: 'Combined/City/Highway' },
     { id: 'epa-electricity', label: 'Combined Gasoline + Electricity', unit: 'MPGe' },
     { id: 'epa-range', label: 'EPA Range', unit: 'mi' },
+  ],
+  warranty: [
+    { id: 'bumper-to-bumper', label: 'Bumper to bumper' },
+    { id: 'powertrain-warranty', label: 'Powertrain' },
+    { id: 'corrosion-warranty', label: 'Corrosion protection' },
+    { id: 'roadside-assistance', label: 'Roadside assistance' },
+    { id: 'scheduled-maintenance', label: 'Scheduled maintenance' },
   ],
 }
 

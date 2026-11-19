@@ -55,6 +55,7 @@ const sectionKeys: SectionKey[] = [
   'testing',
   'interiorSound',
   'fuelEconomy',
+  'warranty',
 ]
 
 const updateSectionEnabled = (sectionKey: SectionKey, enabled: boolean) => {

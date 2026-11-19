@@ -5,7 +5,7 @@ import { generatePanelHtml } from '../generatePanelHtml'
 import type { SectionKey, Vehicle, VehicleSection } from '../types/vehicle'
 
 const sectionKeys: SectionKey[] = [
-  'price', 'powertrain', 'transmission', 'chassis', 'dimensions', 'testing', 'interiorSound', 'fuelEconomy',
+  'price', 'powertrain', 'transmission', 'chassis', 'dimensions', 'testing', 'interiorSound', 'fuelEconomy', 'warranty',
 ]
 
 const makeVehicle = (id: string, model: string, bodyStyle = 'wagon'): Vehicle => {
@@ -181,5 +181,93 @@ describe('generatePanelHtml', () => {
     expect(html).toContain('<strong>Z06</strong><br>\nTrack package: Carbon-fiber aero or Z07 package')
     expect(html).toContain('&lt;script&gt;: &lt;Base&gt; or &lt;Sport&gt;')
     expect(html).not.toContain('Ignored field')
+  })
+
+  it('matches the First Drive hybrid, range, estimate, and split cargo format', () => {
+    const vehicle = makeVehicle('x5', 'X5 40')
+    vehicle.identity.year = '2027'
+    vehicle.identity.make = 'BMW'
+    vehicle.identity.vehicleType.driveLayout = 'rear-or-all'
+    vehicle.trims = [
+      { id: 'sdrive', name: 'sDrive', basePrice: { amount: '71250', estimated: false }, fields: [] },
+      { id: 'xdrive', name: 'xDrive', basePrice: { amount: '73550', estimated: false }, fields: [] },
+    ]
+    vehicle.powertrainVariants[0]!.type = 'hybrid'
+    vehicle.powertrainVariants[0]!.motorCount = 1
+    vehicle.powertrainVariants[0]!.engine = {
+      ...vehicle.powertrainVariants[0]!.engine,
+      valves: '24', descriptors: ['Miller-cycle'], displacementLiters: '3.0', layout: 'inline', cylinders: '6',
+      power: '394', torque: '398', blockMaterial: '', headMaterial: '', fuelInjection: '',
+    }
+    vehicle.powertrainVariants[0]!.motors[0] = { type: '', power: '17', torque: '148' }
+    vehicle.powertrainVariants[0]!.combinedPower = '394'
+    vehicle.powertrainVariants[0]!.combinedTorque = '428'
+    setField(vehicle, 'transmission', 'transmission', '8-speed automatic')
+    setField(vehicle, 'dimensions', 'cargo-volume', '68/27')
+    setField(vehicle, 'testing', 'zero-sixty', '4.7–4.8 sec')
+    setField(vehicle, 'testing', 'zero-hundred', '11.2–11.3 sec')
+    setField(vehicle, 'testing', 'quarter-mile', '13.3–13.4 sec')
+    setField(vehicle, 'fuelEconomy', 'epa-fuel-economy', '26/24/28', { qualifier: 'C/D est' })
+
+    const html = generatePanelHtml([vehicle], 'firstDrive')
+    expect(html).toContain('Vehicle Type: front-engine, rear- or all-wheel-drive, 5-passenger, 4-door, wagon')
+    expect(html).toContain('Base: sDrive, $71,250; xDrive, $73,550')
+    expect(html).toContain('Miller-cycle 3.0-liter inline-6, 394 hp, 398 lb-ft + AC motor, 17 hp, 148 lb-ft (combined output: 394 hp, 428 lb-ft)')
+    expect(html).toContain('Transmission: 8-speed automatic')
+    expect(html).toContain('Cargo Volume, Behind F/R: 68/27 ft<sup>3</sup>')
+    expect(html.indexOf('60 mph: 4.7–4.8 sec')).toBeLessThan(html.indexOf('100 mph: 11.2–11.3 sec'))
+    expect(html.indexOf('100 mph: 11.2–11.3 sec')).toBeLessThan(html.indexOf('1/4-Mile: 13.3–13.4 sec'))
+    expect(html).toContain('EPA FUEL ECONOMY (<em>C/D</em> EST)')
+  })
+
+  it('matches Long-Term price, engine, tire, test, economy, and warranty formatting', () => {
+    const vehicle = makeVehicle('ranger', 'Ranger Raptor')
+    vehicle.identity.year = '2026'
+    vehicle.identity.make = 'Ford'
+    vehicle.powertrainVariants[0]!.engine = {
+      ...vehicle.powertrainVariants[0]!.engine,
+      valves: '24', descriptors: [], layout: 'V', cylinders: '6', blockMaterial: 'iron-and-aluminum',
+      headMaterial: 'aluminum', pluralHeads: true, displacementIn3: '180', displacementCm3: '2956',
+      power: '405', powerRpm: '5500', torque: '430', torqueRpm: '3500',
+    }
+    setField(vehicle, 'price', 'base-price', '$58,965/$60,415')
+    setField(vehicle, 'chassis', 'tire-size', 'LT285/70R-17 116/113S M+S 3PMSF')
+    setField(vehicle, 'dimensions', 'cargo-volume', '68/27')
+    setField(vehicle, 'testing', 'zero-sixty', '5.2')
+    setField(vehicle, 'testing', 'quarter-mile', '13.9 sec @ 98 mph')
+    setField(vehicle, 'testing', 'zero-hundred', '14.6')
+    setField(vehicle, 'testing', 'rollout', '0.3')
+    setField(vehicle, 'testing', 'top-speed', '105', { qualifier: 'gov ltd' })
+    setField(vehicle, 'fuelEconomy', 'observed-fuel-economy', '14 mpg')
+    setField(vehicle, 'fuelEconomy', 'unscheduled-oil-additions', '0')
+    setField(vehicle, 'fuelEconomy', 'epa-fuel-economy', '17/16/18')
+    setField(vehicle, 'warranty', 'bumper-to-bumper', '3 years/36,000 miles')
+    setField(vehicle, 'warranty', 'powertrain-warranty', '5 years/60,000 miles')
+
+    const html = generatePanelHtml([vehicle], 'longTerm')
+    expect(html).toContain('Base/As Tested: $58,965/$60,415')
+    expect(html).toContain('iron and aluminum block and aluminum heads')
+    expect(html).toContain('LT285/70R-17 116/113S M+S 3PMSF')
+    expect(html).not.toContain('Tire Size, F/R:')
+    expect(html).toContain('C/D</strong></em><strong> TEST RESULTS: NEW')
+    expect(html).toContain('Top Speed (gov ltd): 105 mph')
+    expect(html).toContain('Unscheduled Oil Additions: 0 qt')
+    expect(html).toContain('<strong>WARRANTY</strong><br>')
+    expect(html).toContain('3 years/36,000 miles bumper to bumper')
+    expect(html).toContain('5 years/60,000 miles powertrain')
+    expect(html.indexOf('WARRANTY')).toBeLessThan(html.indexOf('C/D TESTING EXPLAINED'))
+  })
+
+  it('uses split passenger and cargo labels and emits scheduled maintenance warranty', () => {
+    const vehicle = makeVehicle('passport', 'Passport TrailSport Elite')
+    vehicle.identity.year = '2026'
+    vehicle.identity.make = 'Honda'
+    setField(vehicle, 'dimensions', 'passenger-volume', '58/58')
+    setField(vehicle, 'dimensions', 'cargo-volume', '83/44')
+    setField(vehicle, 'warranty', 'scheduled-maintenance', '1 years/12,000 miles')
+    const html = generatePanelHtml([vehicle], 'longTerm')
+    expect(html).toContain('Passenger Volume, F/R: 58/58 ft<sup>3</sup>')
+    expect(html).toContain('Cargo Volume, Behind F/R: 83/44 ft<sup>3</sup>')
+    expect(html).toContain('1 years/12,000 miles scheduled maintenance')
   })
 })
