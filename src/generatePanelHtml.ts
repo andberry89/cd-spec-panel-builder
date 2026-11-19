@@ -180,9 +180,18 @@ const renderPrice = (vehicle: Vehicle, fields: SpecField[], panelType: PanelType
       return `${price.label ? `${escapeHtml(price.label)}, ` : ''}${formatPrice(price.amount)}${qualifier}`
     })
     const priceLines = lines.length ? [`Base: ${lines.join('; ')}`] : []
+    const trimDetails = vehicle.trims.flatMap((trim) => {
+      const fields = trim.fields.filter((field) => field.label.trim() && field.value.trim())
+      if (!fields.length) return []
+      return [
+        `<strong>${escapeHtml(trim.name.trim() || 'Trim details')}</strong>`,
+        ...fields.map((field) => row(field)),
+      ]
+    })
+    const outputLines = [...priceLines, ...trimDetails]
     return allEstimated
-      ? richHeadingParagraph('<strong>PRICE (<em>C/D</em> EST)</strong>', priceLines)
-      : paragraph('PRICE', priceLines)
+      ? richHeadingParagraph('<strong>PRICE (<em>C/D</em> EST)</strong>', outputLines)
+      : paragraph('PRICE', outputLines)
   }
   return paragraph('PRICE', fields.map((field) =>
     field.id === 'base-price'

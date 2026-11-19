@@ -62,6 +62,7 @@ const removeTrim = (trimId: string) => {
         @remove="removeTrim(trim.id)"
         @update:name="updateTrim(trim.id, { name: $event })"
         @update:base-price="updateTrim(trim.id, { basePrice: $event })"
+        @update:fields="updateTrim(trim.id, { fields: $event })"
       />
     </div>
   </section>

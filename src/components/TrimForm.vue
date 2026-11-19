@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PriceValue, Trim } from '../types/vehicle'
+import type { PriceValue, SpecField, Trim } from '../types/vehicle'
 
 const props = defineProps<{
   trim: Trim
@@ -10,10 +10,33 @@ const emit = defineEmits<{
   remove: []
   'update:name': [name: string]
   'update:base-price': [price: PriceValue]
+  'update:fields': [fields: SpecField[]]
 }>()
 
 const updateBasePrice = (changes: Partial<PriceValue>) => {
   emit('update:base-price', { ...props.trim.basePrice, ...changes })
+}
+
+const updateField = (fieldId: string, changes: Partial<SpecField>) => {
+  emit(
+    'update:fields',
+    props.trim.fields.map((field) => (field.id === fieldId ? { ...field, ...changes } : field)),
+  )
+}
+
+const addField = () => {
+  emit('update:fields', [
+    ...props.trim.fields,
+    {
+      id: `trim-field-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: '',
+      value: '',
+    },
+  ])
+}
+
+const removeField = (fieldId: string) => {
+  emit('update:fields', props.trim.fields.filter((field) => field.id !== fieldId))
 }
 </script>
 
@@ -50,6 +73,44 @@ const updateBasePrice = (changes: Partial<PriceValue>) => {
       />
       This price is a <em>C/D</em> estimate
     </label>
+
+    <div class="trim-specs">
+      <div class="trim-specs-heading">
+        <span>Trim-specific details</span>
+        <button type="button" class="add-field-button" @click="addField">Add detail</button>
+      </div>
+      <div v-for="field in trim.fields" :key="field.id" class="trim-spec-row">
+        <label>
+          Label
+          <input
+            :value="field.label"
+            type="text"
+            placeholder="e.g. Options"
+            @input="updateField(field.id, { label: ($event.target as HTMLInputElement).value })"
+          />
+        </label>
+        <label>
+          Value
+          <input
+            :value="field.value"
+            type="text"
+            placeholder="Enter a value, range, or alternatives"
+            @input="updateField(field.id, { value: ($event.target as HTMLInputElement).value })"
+          />
+        </label>
+        <button
+          type="button"
+          class="remove-field-button"
+          :aria-label="`Remove ${field.label || 'trim detail'}`"
+          @click="removeField(field.id)"
+        >
+          Remove
+        </button>
+      </div>
+      <p v-if="trim.fields.length === 0" class="trim-specs-empty">
+        Add details that apply only to this trim.
+      </p>
+    </div>
 
     <button v-if="canRemove" type="button" class="remove-button" @click="emit('remove')">
       Remove configuration
@@ -104,6 +165,52 @@ input {
   width: auto;
 }
 
+.trim-specs {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem 0;
+}
+
+.trim-specs-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #55574f;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.trim-spec-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.65fr) minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+}
+
+.add-field-button,
+.remove-field-button {
+  min-height: 2rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #b8b9b1;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #315443;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.remove-field-button {
+  color: #873e36;
+}
+
+.trim-specs-empty {
+  margin: 0;
+  color: #777970;
+  font-size: 0.76rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -128,6 +235,10 @@ input {
 @media (max-width: 640px) {
   .trim-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trim-spec-row {
+    grid-template-columns: 1fr;
   }
 }
 

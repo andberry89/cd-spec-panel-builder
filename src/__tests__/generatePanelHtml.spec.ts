@@ -157,4 +157,30 @@ describe('generatePanelHtml', () => {
     const html = generatePanelHtml([makeVehicle('first-drive', 'Macan')], 'firstDrive')
     expect(html).not.toContain('C/D TESTING EXPLAINED')
   })
+
+  it('renders populated First Drive trim details with their trim and preserves ranges and alternatives', () => {
+    const vehicle = makeVehicle('first-drive-trims', 'Corvette')
+    vehicle.trims = [
+      {
+        id: 'stingray', name: 'Stingray', basePrice: { amount: '73795', estimated: false },
+        fields: [
+          { id: 'options', label: 'Options', value: 'Z51 package, $5,395; Magnetic Ride Control, $1,895' },
+          { id: 'range', label: 'Power', value: '490–495 hp' },
+          { id: 'blank', label: 'Ignored field', value: '   ' },
+          { id: 'unsafe', label: '<script>', value: '<Base> or <Sport>' },
+        ],
+      },
+      {
+        id: 'z06', name: 'Z06', basePrice: { amount: '112100', estimated: true },
+        fields: [{ id: 'track', label: 'Track package', value: 'Carbon-fiber aero or Z07 package' }],
+      },
+    ]
+
+    const html = generatePanelHtml([vehicle], 'firstDrive')
+    expect(html).toContain('<strong>Stingray</strong><br>\nOptions: Z51 package, $5,395; Magnetic Ride Control, $1,895')
+    expect(html).toContain('Power: 490–495 hp')
+    expect(html).toContain('<strong>Z06</strong><br>\nTrack package: Carbon-fiber aero or Z07 package')
+    expect(html).toContain('&lt;script&gt;: &lt;Base&gt; or &lt;Sport&gt;')
+    expect(html).not.toContain('Ignored field')
+  })
 })
