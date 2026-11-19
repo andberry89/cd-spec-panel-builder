@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import VehicleForm from './components/VehicleForm.vue'
 import type { Panel } from './types/panel'
 import type { ElectricMotor, EngineEntry, PowertrainVariant, SectionKey, Vehicle, VehicleSection, VehicleTypeSpec } from './types/vehicle'
 import { createEmptyFields } from './data/fieldCatalog'
 import { generatePanelHtml } from './generatePanelHtml'
+import { loadPanelDraft, savePanelDraft } from './panelDraft'
 
 const createSection = (): VehicleSection => ({
   enabled: true,
@@ -96,7 +97,7 @@ const createVehicleTwo = (): Vehicle => ({
   sections: createSections(),
 })
 
-const panel = ref<Panel>({
+const createInitialPanel = (): Panel => ({
   panelType: 'firstDrive',
   vehicleOne: {
     id: 'vehicle-one',
@@ -121,6 +122,21 @@ const panel = ref<Panel>({
   testingExplainedEnabled: true,
 })
 
+const loadedPanel = loadPanelDraft()
+const panel = ref<Panel>(loadedPanel ?? createInitialPanel())
+const draftStatus = ref(loadedPanel ? 'Draft restored from this browser.' : 'Changes save automatically in this browser.')
+let saveTimeout: number | undefined
+
+watch(panel, (updatedPanel) => {
+  draftStatus.value = 'Saving draft…'
+  if (saveTimeout !== undefined) window.clearTimeout(saveTimeout)
+  saveTimeout = window.setTimeout(() => {
+    draftStatus.value = savePanelDraft(updatedPanel)
+      ? 'Draft saved in this browser.'
+      : 'This browser could not save the draft.'
+  }, 300)
+}, { deep: true })
+
 const generatedHtml = computed(() =>
   generatePanelHtml(
     [panel.value.vehicleOne, panel.value.vehicleTwo].filter((vehicle): vehicle is Vehicle => Boolean(vehicle)),
@@ -129,6 +145,25 @@ const generatedHtml = computed(() =>
   ),
 )
 const copied = ref(false)
+const validationMessages = computed(() => {
+  const vehicles = [
+    { label: 'Vehicle 1', vehicle: panel.value.vehicleOne },
+    ...(panel.value.vehicleTwo ? [{ label: 'Vehicle 2', vehicle: panel.value.vehicleTwo }] : []),
+  ]
+  return vehicles.flatMap(({ label, vehicle }) => {
+    const missing: string[] = []
+    if (!vehicle.identity.year.trim()) missing.push('year')
+    if (!vehicle.identity.make.trim()) missing.push('make')
+    if (!vehicle.identity.model.trim()) missing.push('model')
+    if (!missing.length) return []
+    const missingText = missing.length === 1
+      ? missing[0]
+      : missing.length === 2
+        ? `${missing[0]} and ${missing[1]}`
+        : `${missing[0]}, ${missing[1]}, and ${missing[2]}`
+    return [`${label} is missing ${missingText} for its output heading.`]
+  })
+})
 
 const copyHtml = async () => {
   await navigator.clipboard.writeText(generatedHtml.value)
@@ -153,6 +188,7 @@ const removeVehicleTwo = () => {
       <p class="intro">
         Enter vehicle details, review the output, and copy the HTML.
       </p>
+      <p class="draft-status" role="status">{{ draftStatus }}</p>
       <label class="panel-type-control">
         Panel template
         <select v-model="panel.panelType">
@@ -165,6 +201,9 @@ const removeVehicleTwo = () => {
 
     <section class="builder-layout" aria-label="Specifications panel builder">
       <div class="vehicle-list">
+        <div v-if="validationMessages.length" class="validation-summary" role="status" aria-live="polite">
+          <p v-for="message in validationMessages" :key="message">{{ message }}</p>
+        </div>
         <article class="builder-card">
           <div class="card-heading">
             <div>
@@ -306,6 +345,27 @@ h2 {
   color: #676960;
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.draft-status {
+  grid-column: 1;
+  margin: 0.2rem 0 0;
+  color: #676960;
+  font-size: 0.76rem;
+}
+
+.validation-summary {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 2px solid #aa8747;
+  background: #f4f0e6;
+  color: #5c4b2d;
+  font-size: 0.8rem;
+}
+
+.validation-summary p {
+  margin: 0;
 }
 
 .app-header select {
