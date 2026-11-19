@@ -10,6 +10,7 @@ import type { PanelType } from '../types/panel'
 const props = defineProps<{
   modelValue: Vehicle
   panelType: PanelType
+  vehicleLabel: string
 }>()
 
 const emit = defineEmits<{
@@ -103,7 +104,7 @@ const displaySectionLabel = (key: SectionKey) => {
 </script>
 
 <template>
-  <form class="vehicle-form" @submit.prevent>
+  <form class="vehicle-form" :aria-label="`${vehicleLabel} details`" @submit.prevent>
     <section class="identity-section" aria-label="Vehicle identity">
       <div class="identity-grid">
         <label>
@@ -131,7 +132,7 @@ const displaySectionLabel = (key: SectionKey) => {
           <input
             type="checkbox"
             :checked="modelValue.sections[sectionKey].enabled"
-            aria-label="Include section"
+            :aria-label="`Include ${displaySectionLabel(sectionKey)} for ${vehicleLabel}`"
             @click.stop
             @change="updateSectionEnabled(sectionKey, ($event.target as HTMLInputElement).checked)"
           />
@@ -225,6 +226,7 @@ select {
 
 .section-editor-content {
   padding: 0.15rem 0 1rem 1.25rem;
+  min-width: 0;
 }
 
 .vehicle-type-details > .vehicle-type-form {
@@ -239,6 +241,10 @@ select {
 @media (max-width: 640px) {
   .identity-grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-editor-content {
+    padding-left: 0.5rem;
   }
 }
 </style>

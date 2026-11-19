@@ -55,9 +55,10 @@ const removeTrim = (trimId: string) => {
         Include trim in vehicle heading
       </label>
       <TrimForm
-        v-for="trim in trims"
+        v-for="(trim, index) in trims"
         :key="trim.id"
         :trim="trim"
+        :trim-index="index + 1"
         :can-remove="trims.length > 1"
         @remove="removeTrim(trim.id)"
         @update:name="updateTrim(trim.id, { name: $event })"

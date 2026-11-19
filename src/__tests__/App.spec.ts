@@ -47,6 +47,18 @@ describe('App', () => {
     wrapper.unmount()
   })
 
+  it('gives vehicle forms and section controls distinct accessible names', async () => {
+    const wrapper = mount(App)
+    expect(wrapper.find('form[aria-label="Vehicle 1 details"]').exists()).toBe(true)
+    expect(wrapper.find('input[aria-label="Include Price for Vehicle 1"]').exists()).toBe(true)
+    expect(wrapper.find('span[role="status"][aria-live="polite"]').exists()).toBe(true)
+
+    await wrapper.find('button.add-vehicle-button').trigger('click')
+    expect(wrapper.find('form[aria-label="Vehicle 2 details"]').exists()).toBe(true)
+    expect(wrapper.find('input[aria-label="Include Price for Vehicle 2"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it('automatically saves the panel and restores it on the next visit', async () => {
     const wrapper = mount(App)
     await wrapper.find('input[placeholder="2026"]').setValue('2024')
@@ -105,7 +117,7 @@ describe('App', () => {
   })
 
   it('copies the edited HTML and restores manual source edits from the saved draft', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined)
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText },

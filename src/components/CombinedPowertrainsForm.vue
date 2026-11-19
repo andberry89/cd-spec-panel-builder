@@ -200,9 +200,9 @@ const usesPowertrainEngineFormat = () => props.modelValue.length > 1
       </template>
 
       <div class="variant-actions">
-        <button type="button" :disabled="index === 0" @click="moveVariant(index, -1)">Move up</button>
-        <button type="button" :disabled="index === modelValue.length - 1" @click="moveVariant(index, 1)">Move down</button>
-        <button v-if="modelValue.length > 1" type="button" class="remove-button" @click="removeVariant(variant.id)">Remove option</button>
+        <button type="button" :aria-label="`Move ${variant.type === 'combustion' ? 'engine' : 'powertrain'} ${index + 1} up`" :disabled="index === 0" @click="moveVariant(index, -1)">Move up</button>
+        <button type="button" :aria-label="`Move ${variant.type === 'combustion' ? 'engine' : 'powertrain'} ${index + 1} down`" :disabled="index === modelValue.length - 1" @click="moveVariant(index, 1)">Move down</button>
+        <button v-if="modelValue.length > 1" type="button" class="remove-button" :aria-label="`Remove ${variant.type === 'combustion' ? 'engine' : 'powertrain'} ${index + 1}`" @click="removeVariant(variant.id)">Remove option</button>
       </div>
       </div>
     </details>
@@ -216,13 +216,14 @@ const usesPowertrainEngineFormat = () => props.modelValue.length > 1
 h4 { margin: 0; font-size: 0.95rem; }
 .variant-entry { border-bottom: 1px solid #deded8; }
 .variant-entry > summary { padding: 0.7rem 0; color: #343530; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
-.variant-content { display: grid; gap: 0.75rem; padding: 0.1rem 0 0.9rem 1.1rem; }
+.variant-content { display: grid; min-width: 0; gap: 0.75rem; padding: 0.1rem 0 0.9rem 1.1rem; }
 .variant-content > label { max-width: 25rem; }
 .motor-entry, .system-output { display: grid; gap: 0.65rem; margin: 0; padding: 0.55rem 0; border: 0; border-top: 1px solid #ecece7; }
 .motor-entry legend, .system-output legend { padding: 0 0.3rem 0 0; color: #55574f; font-size: 0.78rem; font-weight: 600; }
 .check-option { display: flex; align-items: center; gap: 0.45rem; }
 .check-option input { width: auto; }
 .variant-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+.variant-grid > * { min-width: 0; }
 .motor-grid { display: grid; gap: 0.65rem; }
 label { display: grid; gap: 0.3rem; color: #55574f; font-size: 0.8rem; font-weight: 600; }
 input:not([type="checkbox"]), select { width: 100%; min-height: 2.25rem; padding: 0.4rem 0.5rem; border: 1px solid #b8b9b1; border-radius: 0.25rem; background: #fff; color: #20211f; font: inherit; }
@@ -232,5 +233,5 @@ input:not([type="checkbox"]), select { width: 100%; min-height: 2.25rem; padding
 .variant-actions .remove-button { border-color: #c6a8a2; color: #873e36; }
 .add-button { border-color: #aeb5ac; color: #315443; }
 .help-text { margin: 0; color: #686a63; font-size: 0.78rem; }
-@media (max-width: 640px) { .variants-header { align-items: stretch; flex-direction: column; } .variant-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .variants-header { align-items: stretch; flex-direction: column; } .variant-content { padding-left: 0.5rem; } .variant-grid { grid-template-columns: 1fr; } }
 </style>

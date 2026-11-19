@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import { createEmptyFields } from '../data/fieldCatalog'
 import { generatePanelHtml } from '../generatePanelHtml'
-import type { PanelType } from '../types/panel'
 import type { SectionKey, Vehicle, VehicleSection } from '../types/vehicle'
 
 const sectionKeys: SectionKey[] = [

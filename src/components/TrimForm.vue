@@ -4,6 +4,7 @@ import type { PriceValue, SpecField, Trim } from '../types/vehicle'
 const props = defineProps<{
   trim: Trim
   canRemove: boolean
+  trimIndex: number
 }>()
 
 const emit = defineEmits<{
@@ -42,7 +43,7 @@ const removeField = (fieldId: string) => {
 
 <template>
   <fieldset class="trim-form">
-    <legend class="visually-hidden">Trim or configuration</legend>
+    <legend class="visually-hidden">{{ trim.name || `Trim ${trimIndex}` }}</legend>
 
     <label>
       Trim or configuration
@@ -77,7 +78,7 @@ const removeField = (fieldId: string) => {
     <div class="trim-specs">
       <div class="trim-specs-heading">
         <span>Trim-specific details</span>
-        <button type="button" class="add-field-button" @click="addField">Add detail</button>
+        <button type="button" class="add-field-button" :aria-label="`Add detail to ${trim.name || `trim ${trimIndex}`}`" @click="addField">Add detail</button>
       </div>
       <div v-for="field in trim.fields" :key="field.id" class="trim-spec-row">
         <label>
@@ -101,7 +102,7 @@ const removeField = (fieldId: string) => {
         <button
           type="button"
           class="remove-field-button"
-          :aria-label="`Remove ${field.label || 'trim detail'}`"
+          :aria-label="`Remove ${field.label || 'detail'} from ${trim.name || `trim ${trimIndex}`}`"
           @click="removeField(field.id)"
         >
           Remove
@@ -112,7 +113,7 @@ const removeField = (fieldId: string) => {
       </p>
     </div>
 
-    <button v-if="canRemove" type="button" class="remove-button" @click="emit('remove')">
+    <button v-if="canRemove" type="button" class="remove-button" :aria-label="`Remove ${trim.name || `trim ${trimIndex}`}`" @click="emit('remove')">
       Remove configuration
     </button>
 
@@ -122,6 +123,7 @@ const removeField = (fieldId: string) => {
 <style scoped>
 .trim-form {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(110px, 1fr) minmax(130px, 1fr) minmax(130px, auto) auto;
   align-items: end;
   gap: 0.75rem;

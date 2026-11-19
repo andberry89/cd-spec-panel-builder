@@ -158,14 +158,12 @@ select {
   border: 0;
   border-top: 1px solid #ecece7;
   min-width: 0;
-  padding: 0.75rem;
-  border: 1px solid #c8beb1;
-  border-radius: 0.5rem;
 }
 
 .choice {
   display: flex;
   align-items: center;
+  min-height: 2rem;
   gap: 0.35rem;
   color: #343530;
   font-size: 0.8rem;
@@ -183,6 +181,12 @@ select {
 @media (max-width: 640px) {
   .vehicle-type-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 400px) {
+  .vehicle-type-form {
+    grid-template-columns: 1fr;
   }
 }
 </style>

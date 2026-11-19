@@ -1,5 +1,5 @@
 import type { PanelType } from './types/panel'
-import type { ElectricMotor, EngineEntry, PowertrainVariant, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from './types/vehicle'
+import type { EngineEntry, PowertrainVariant, SectionKey, SpecField, Vehicle, VehicleTypeSpec } from './types/vehicle'
 
 const sectionOrder: SectionKey[] = [
   'price',
