@@ -98,6 +98,7 @@ const usesLiterFormat = () => props.format === 'powertrain'
             <option value="iron">Iron</option>
             <option value="aluminum">Aluminum</option>
             <option value="aluminum-and-magnesium">Aluminum and magnesium</option>
+            <option value="iron-and-aluminum">Iron and aluminum</option>
           </select>
         </label>
 

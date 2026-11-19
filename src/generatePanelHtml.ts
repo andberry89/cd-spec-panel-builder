@@ -10,6 +10,7 @@ const sectionOrder: SectionKey[] = [
   'testing',
   'interiorSound',
   'fuelEconomy',
+  'warranty',
 ]
 
 const escapeHtml = (value: string) =>
@@ -59,6 +60,8 @@ const outputLabel = (field: SpecField, vehicle?: Vehicle) => {
     return `Passenger Volume, ${rows}`
   }
   if (field.id === 'cargo-volume') {
+    const count = field.value.split('/').length
+    if (count > 1) return `Cargo Volume, Behind ${count === 2 ? 'F/R' : 'F/M/R'}`
     const styles = vehicle?.identity.vehicleType.bodyStyles ?? []
     return styles.some((style) => ['coupe', 'convertible', 'targa'].includes(style))
       ? 'Trunk Volume'
@@ -83,10 +86,10 @@ const engineDescription = (engine: EngineEntry, multiple = false) => {
   if (induction.length) core.push(joinWithAnd(induction))
   const valveTrain = [engine.valvetrain, engine.valves ? `${engine.valves}-valve` : ''].filter(Boolean).join(' ')
   if (valveTrain) core.push(valveTrain)
+  core.push(...engine.descriptors)
   if (multiple && engine.displacementLiters.trim()) {
     core.push(`${engine.displacementLiters.trim()}-liter`)
   }
-  core.push(...engine.descriptors)
   if (engine.layout && engine.cylinders.trim()) {
     core.push(`${engine.layout}-${engine.cylinders.trim()}`)
   } else if (engine.layout) {
@@ -96,7 +99,12 @@ const engineDescription = (engine: EngineEntry, multiple = false) => {
   }
   if (!multiple) {
     if (engine.blockMaterial && engine.headMaterial) {
-      details.push(`${engine.blockMaterial} block and ${engine.headMaterial} head${engine.pluralHeads ? 's' : ''}`)
+      const block = engine.blockMaterial === 'iron-and-aluminum' ? 'iron and aluminum' : engine.blockMaterial
+      if (engine.blockMaterial === engine.headMaterial) {
+        details.push(`${block} block and heads`)
+      } else {
+        details.push(`${block} block and ${engine.headMaterial} head${engine.pluralHeads ? 's' : ''}`)
+      }
     } else if (engine.blockMaterial) {
       details.push(`${engine.blockMaterial} block`)
     } else if (engine.headMaterial) {
@@ -152,7 +160,7 @@ const formatVehicleType = (type: VehicleTypeSpec) => {
   if (motors.length === 1) pieces.push(`${motors[0]}-motor`)
   else if (motors.length === 2) pieces.push(`${motors[0]}- and ${motors[1]}-motor`)
   else if (motors.length === 3) pieces.push(`${motors[0]}-, ${motors[1]}-, and ${motors[2]}-motor`)
-  if (type.driveLayout) pieces.push(`${type.driveLayout}-wheel-drive`)
+  if (type.driveLayout) pieces.push(type.driveLayout === 'rear-or-all' ? 'rear- or all-wheel-drive' : `${type.driveLayout}-wheel-drive`)
   if (type.passengers) pieces.push(`${type.passengers}-passenger`)
   if (type.doors) pieces.push(`${type.doors}-door`)
   if (type.bodyStyles.length) pieces.push(type.bodyStyles.join(' or '))
@@ -195,7 +203,7 @@ const renderPrice = (vehicle: Vehicle, fields: SpecField[], panelType: PanelType
   }
   return paragraph('PRICE', fields.map((field) =>
     field.id === 'base-price'
-      ? `${panelType === 'testedSpecs' ? 'Base/As Tested' : 'Base'}: ${formatValue(field)}`
+      ? `Base/As Tested: ${formatValue(field)}`
       : row(field),
   ))
 }
@@ -322,7 +330,7 @@ const renderChassis = (fields: SpecField[]) => {
     if (field.id !== 'tire-size') return [row(field)]
     const [front, ...rearParts] = field.value.split(/\s+\/\s+/)
     const rear = rearParts.join('/').trim()
-    if (!rear) return [row(field)]
+    if (!rear) return [escapeHtml(field.value.trim())]
     return [
       front?.trim() ? `F: ${escapeHtml(front.trim())}` : '',
       rear ? `R: ${escapeHtml(rear)}` : '',
@@ -338,7 +346,7 @@ const renderTesting = (fields: SpecField[], panelType: PanelType) => {
   const trap = Number(quarterMile?.value.match(/@\s*(\d+(?:\.\d+)?)/)?.[1])
   const quarterBeforeHundred = !Number.isFinite(trap) || trap < 100
   const positions = new Map(results.map((field, index) => [field, index]))
-  results.sort((left, right) => {
+  if (panelType !== 'firstDrive') results.sort((left, right) => {
     const position = (field: SpecField) => {
       if (field.id === 'quarter-mile') return quarterBeforeHundred ? 2 : 3
       if (field.id === 'zero-hundred') return quarterBeforeHundred ? 3 : 2
@@ -349,7 +357,7 @@ const renderTesting = (fields: SpecField[], panelType: PanelType) => {
 
   const lines = results.map((field) => {
     const quarterMile = field.id === 'quarter-mile'
-      ? field.value.trim().match(/^(\d+(?:\.\d+)?)(.*)$/)
+      ? field.value.trim().match(/^(\d+(?:\.\d+)?(?:\s*[–—-]\s*\d+(?:\.\d+)?)?)(.*)$/)
       : null
     const quarterMileValue = quarterMile
       ? `${escapeHtml(quarterMile[1] ?? '')} sec${quarterMile[2]?.trim().replace(/^sec(?:ond)?s?/i, '') ? ` ${escapeHtml(quarterMile[2].trim().replace(/^sec(?:ond)?s?/i, '').trim())}` : ''}`
@@ -460,6 +468,9 @@ const renderSection = (vehicle: Vehicle, key: SectionKey, panelType: PanelType) 
       ? fields.filter((field) => field.id !== 'epa-electricity')
       : fields
     return renderFuelEconomy(vehicle, relevantFields)
+  }
+  if (key === 'warranty') {
+    return paragraph('WARRANTY', fields.map((field) => `${escapeHtml(field.value.trim())} ${escapeHtml(field.label.toLowerCase())}`))
   }
 
   return paragraph('Interior Sound', fields.map((field) => row(field)))
