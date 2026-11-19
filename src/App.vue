@@ -244,7 +244,7 @@ const removeVehicleTwo = () => {
 
           </div>
 
-          <VehicleForm v-model="panel.vehicleOne" :panel-type="panel.panelType" />
+          <VehicleForm v-model="panel.vehicleOne" vehicle-label="Vehicle 1" :panel-type="panel.panelType" />
         </article>
 
         <article v-if="panel.vehicleTwo" class="builder-card">
@@ -259,7 +259,7 @@ const removeVehicleTwo = () => {
             </button>
           </div>
 
-          <VehicleForm v-model="panel.vehicleTwo" :panel-type="panel.panelType" />
+          <VehicleForm v-model="panel.vehicleTwo" vehicle-label="Vehicle 2" :panel-type="panel.panelType" />
         </article>
 
         <button v-else type="button" class="add-vehicle-button" @click="addVehicleTwo">
@@ -277,6 +277,9 @@ const removeVehicleTwo = () => {
           <button type="button" class="copy-button" :disabled="!htmlSource.trim()" @click="copyHtml">
             {{ copied ? 'Copied' : 'Copy HTML' }}
           </button>
+          <span class="visually-hidden" role="status" aria-live="polite">
+            {{ copied ? 'HTML copied to clipboard.' : '' }}
+          </span>
         </div>
 
         <label v-if="panel.panelType !== 'firstDrive'" class="testing-link-toggle">
@@ -339,6 +342,11 @@ const removeVehicleTwo = () => {
 
 :global(button) {
   font: inherit;
+}
+
+:global(:focus-visible) {
+  outline: 3px solid #28618f;
+  outline-offset: 2px;
 }
 
 .app-shell {
@@ -501,6 +509,18 @@ h2 {
   cursor: not-allowed;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .testing-link-toggle {
   display: flex;
   align-items: center;
@@ -583,6 +603,10 @@ textarea {
     border-top: 1px solid #d8d9d2;
     border-left: 0;
   }
+
+  textarea {
+    min-height: min(38vh, 24rem);
+  }
 }
 
 @media (max-width: 520px) {
@@ -594,6 +618,44 @@ textarea {
   .panel-type-control {
     grid-column: 1;
     grid-row: auto;
+  }
+
+  .source-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-shell {
+    width: calc(100% - 1.25rem);
+  }
+}
+
+@media (pointer: coarse) {
+  :global(button) {
+    min-height: 2.75rem;
+  }
+
+  :global(.check-option),
+  :global(.choice),
+  :global(.qualifier-option),
+  :global(.heading-toggle),
+  :global(.estimate-toggle),
+  :global(.testing-link-toggle) {
+    min-height: 2.75rem;
+  }
+
+  :global(input:not([type="checkbox"]):not([type="radio"])),
+  :global(select),
+  :global(textarea) {
+    min-height: 2.75rem;
+  }
+
+  :global(input[type="checkbox"]),
+  :global(input[type="radio"]) {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 </style>

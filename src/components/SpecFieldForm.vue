@@ -51,9 +51,9 @@ const displayFieldLabel = (field: SpecField) => {
         </label>
 
         <fieldset class="qualifier-control">
-          <legend class="qualifier-label">Qualifier</legend>
+          <legend class="qualifier-label">Qualifier for {{ displayFieldLabel(field) }}</legend>
 
-          <div class="qualifier-options" role="radiogroup" aria-label="Qualifier">
+          <div class="qualifier-options" role="radiogroup" :aria-label="`Qualifier for ${displayFieldLabel(field)}`">
             <label class="qualifier-option">
               <input
                 :name="`qualifier-${field.id}`"
@@ -107,6 +107,7 @@ const displayFieldLabel = (field: SpecField) => {
 .field-row {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto;
+  min-width: 0;
   align-items: center;
   gap: 0.8rem;
   padding: 0.55rem 0;
@@ -116,6 +117,7 @@ const displayFieldLabel = (field: SpecField) => {
 label {
   display: grid;
   grid-template-columns: minmax(115px, 0.7fr) minmax(130px, 1fr);
+  min-width: 0;
   align-items: center;
   gap: 0.75rem;
   color: #343530;

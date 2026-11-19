@@ -178,16 +178,17 @@ const usesLiterFormat = () => props.format === 'powertrain'
 <style scoped>
 .engine-form { display: grid; gap: 0.65rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-.engine-entry { display: grid; gap: 0.65rem; margin: 0; padding: 0.55rem 0; border: 0; }
+.engine-entry { display: grid; min-width: 0; gap: 0.65rem; margin: 0; padding: 0.55rem 0; border: 0; }
 .descriptor-options, .forced-induction-options { display: grid; gap: 0.5rem; margin: 0; padding: 0.55rem 0; border: 0; border-top: 1px solid #ecece7; }
 .engine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+.engine-grid > * { min-width: 0; }
 .output-grid { margin-top: 0.2rem; }
 label { display: grid; gap: 0.3rem; color: #55574f; font-size: 0.8rem; font-weight: 600; }
 input:not([type="checkbox"]), select { width: 100%; min-height: 2.25rem; padding: 0.4rem 0.5rem; border: 1px solid #b8b9b1; border-radius: 0.25rem; background: #fff; color: #20211f; font: inherit; }
 .check-option { display: flex; align-items: center; gap: 0.45rem; }
 .check-option input { width: auto; margin: 0; accent-color: #315443; }
-.descriptor-options { grid-template-columns: repeat(2, max-content); align-items: center; }
+.descriptor-options { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); align-items: center; }
 .descriptor-options legend, .forced-induction-options legend { grid-column: 1 / -1; padding: 0 0.3rem 0 0; color: #55574f; font-size: 0.78rem; font-weight: 600; }
 .forced-induction-options { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); align-items: center; }
-@media (max-width: 640px) { .engine-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .engine-grid { grid-template-columns: 1fr; } .engine-entry, .descriptor-options, .forced-induction-options { min-width: 0; } }
 </style>
