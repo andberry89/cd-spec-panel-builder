@@ -2,6 +2,12 @@ import type { Panel } from './types/panel'
 import type { SectionKey } from './types/vehicle'
 
 export const panelDraftStorageKey = 'cd-spec-panel-builder:draft:v1'
+
+export interface LoadedPanelDraft {
+  panel: Panel
+  htmlOverride?: string
+}
+
 const sectionKeys: SectionKey[] = [
   'price',
   'powertrain',
@@ -131,23 +137,35 @@ const getStorage = (): Storage | null => {
   }
 }
 
-export const loadPanelDraft = (): Panel | null => {
+export const loadPanelDraft = (): LoadedPanelDraft | null => {
   try {
     const serialized = getStorage()?.getItem(panelDraftStorageKey)
     if (!serialized) return null
     const draft: unknown = JSON.parse(serialized)
-    if (!isRecord(draft) || draft.version !== 1 || !isPanel(draft.panel)) return null
-    return draft.panel
+    if (
+      !isRecord(draft) ||
+      draft.version !== 1 ||
+      !isPanel(draft.panel) ||
+      (draft.htmlOverride !== undefined && !isString(draft.htmlOverride))
+    ) return null
+    return {
+      panel: draft.panel,
+      ...(draft.htmlOverride === undefined ? {} : { htmlOverride: draft.htmlOverride }),
+    }
   } catch {
     return null
   }
 }
 
-export const savePanelDraft = (panel: Panel): boolean => {
+export const savePanelDraft = (panel: Panel, htmlOverride?: string): boolean => {
   try {
     const storage = getStorage()
     if (!storage) return false
-    storage.setItem(panelDraftStorageKey, JSON.stringify({ version: 1, panel }))
+    storage.setItem(panelDraftStorageKey, JSON.stringify({
+      version: 1,
+      panel,
+      ...(htmlOverride === undefined ? {} : { htmlOverride }),
+    }))
     return true
   } catch {
     return false

@@ -22,7 +22,7 @@ Vite prints the local address. The editor runs in the browser and currently keep
 - One panel-level Specifications heading, ordered vehicle blocks, and a shared testing link.
 - Generated HTML, rendered preview, and copy-to-clipboard.
 
-The HTML textarea is read-only. Panel data stays in memory and is cleared when the page is refreshed. Vehicle sections and powertrain options are grouped in compact disclosure panels, with the output preview kept alongside the form on larger screens.
+The HTML source can be edited before copying. Form changes keep the HTML in sync until you make a manual edit; after that, use **Regenerate from form** to replace your edited source, with a confirmation step. The preview runs in a sandboxed frame. Panel data and manual HTML edits are saved in this browser and restored on return. Vehicle sections and powertrain options are grouped in compact disclosure panels, with the output preview kept alongside the form on larger screens.
 
 ## Useful commands
 

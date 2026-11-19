@@ -122,20 +122,9 @@ const createInitialPanel = (): Panel => ({
   testingExplainedEnabled: true,
 })
 
-const loadedPanel = loadPanelDraft()
-const panel = ref<Panel>(loadedPanel ?? createInitialPanel())
-const draftStatus = ref(loadedPanel ? 'Draft restored from this browser.' : 'Changes save automatically in this browser.')
-let saveTimeout: number | undefined
-
-watch(panel, (updatedPanel) => {
-  draftStatus.value = 'Saving draft…'
-  if (saveTimeout !== undefined) window.clearTimeout(saveTimeout)
-  saveTimeout = window.setTimeout(() => {
-    draftStatus.value = savePanelDraft(updatedPanel)
-      ? 'Draft saved in this browser.'
-      : 'This browser could not save the draft.'
-  }, 300)
-}, { deep: true })
+const loadedDraft = loadPanelDraft()
+const panel = ref<Panel>(loadedDraft?.panel ?? createInitialPanel())
+const draftStatus = ref(loadedDraft ? 'Draft restored from this browser.' : 'Changes save automatically in this browser.')
 
 const generatedHtml = computed(() =>
   generatePanelHtml(
@@ -145,6 +134,33 @@ const generatedHtml = computed(() =>
   ),
 )
 const copied = ref(false)
+const htmlSource = ref(loadedDraft?.htmlOverride ?? generatedHtml.value)
+const hasManualHtml = ref(Boolean(loadedDraft?.htmlOverride && loadedDraft.htmlOverride !== generatedHtml.value))
+const previewDocument = computed(() => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <style>body { margin: 1rem; color: #202124; font: 16px/1.45 Georgia, serif; }</style>
+</head>
+<body>${htmlSource.value}</body>
+</html>`)
+let saveTimeout: number | undefined
+
+watch(generatedHtml, (nextHtml) => {
+  if (!hasManualHtml.value) htmlSource.value = nextHtml
+})
+
+watch([panel, htmlSource], ([updatedPanel]) => {
+  draftStatus.value = 'Saving draft…'
+  if (saveTimeout !== undefined) window.clearTimeout(saveTimeout)
+  saveTimeout = window.setTimeout(() => {
+    draftStatus.value = savePanelDraft(updatedPanel, hasManualHtml.value ? htmlSource.value : undefined)
+      ? 'Draft saved in this browser.'
+      : 'This browser could not save the draft.'
+  }, 300)
+}, { deep: true })
+
 const validationMessages = computed(() => {
   const vehicles = [
     { label: 'Vehicle 1', vehicle: panel.value.vehicleOne },
@@ -166,9 +182,24 @@ const validationMessages = computed(() => {
 })
 
 const copyHtml = async () => {
-  await navigator.clipboard.writeText(generatedHtml.value)
+  await navigator.clipboard.writeText(htmlSource.value)
   copied.value = true
   window.setTimeout(() => (copied.value = false), 1800)
+}
+
+const updateHtmlSource = (event: Event) => {
+  const nextHtml = (event.target as HTMLTextAreaElement).value
+  htmlSource.value = nextHtml
+  hasManualHtml.value = nextHtml !== generatedHtml.value
+}
+
+const regenerateFromFields = () => {
+  const shouldReplace = !hasManualHtml.value || window.confirm(
+    'Replace the edited HTML with generated output? Your manual HTML changes will be lost.',
+  )
+  if (!shouldReplace) return
+  hasManualHtml.value = false
+  htmlSource.value = generatedHtml.value
 }
 
 const addVehicleTwo = () => {
@@ -243,7 +274,7 @@ const removeVehicleTwo = () => {
             <h2>Preview</h2>
           </div>
 
-          <button type="button" class="copy-button" :disabled="!generatedHtml" @click="copyHtml">
+          <button type="button" class="copy-button" :disabled="!htmlSource.trim()" @click="copyHtml">
             {{ copied ? 'Copied' : 'Copy HTML' }}
           </button>
         </div>
@@ -254,9 +285,32 @@ const removeVehicleTwo = () => {
         </label>
         <div class="preview-content">
           <h3>Rendered preview</h3>
-          <div class="rendered-preview" v-html="generatedHtml"></div>
-          <h3>HTML</h3>
-          <textarea :value="generatedHtml" readonly aria-label="Generated specifications HTML"></textarea>
+          <iframe
+            class="rendered-preview-frame"
+            :srcdoc="previewDocument"
+            sandbox=""
+            title="Rendered specifications HTML preview"
+          ></iframe>
+          <div class="source-heading">
+            <h3>Edit HTML before copying</h3>
+            <button
+              v-if="hasManualHtml"
+              type="button"
+              class="regenerate-button"
+              @click="regenerateFromFields"
+            >
+              Regenerate from form
+            </button>
+          </div>
+          <p v-if="hasManualHtml" class="manual-html-status" role="status">
+            Manual edits are preserved. Changes to the form will not update this HTML until you regenerate.
+          </p>
+          <textarea
+            :value="htmlSource"
+            aria-label="Editable specifications HTML"
+            spellcheck="false"
+            @input="updateHtmlSource"
+          ></textarea>
         </div>
       </aside>
     </section>
@@ -466,15 +520,39 @@ h2 {
   font-size: 0.95rem;
 }
 
-.rendered-preview {
+.rendered-preview-frame {
+  display: block;
+  width: 100%;
   min-height: 8rem;
-  padding: 1rem;
   border: 1px solid #d8d0c5;
   border-radius: 0.75rem;
   background: white;
-  color: #202124;
-  font-family: Georgia, serif;
-  line-height: 1.45;
+}
+
+.source-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.manual-html-status {
+  margin: -0.35rem 0 0;
+  color: #676960;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.regenerate-button {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #aeb5ac;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #315443;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
 }
 
 textarea {

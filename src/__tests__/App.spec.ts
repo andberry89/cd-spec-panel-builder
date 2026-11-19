@@ -26,6 +26,7 @@ describe('App', () => {
 
   afterEach(() => {
     storage.clear()
+    vi.restoreAllMocks()
   })
 
   it('mounts renders properly', () => {
@@ -73,5 +74,61 @@ describe('App', () => {
     expect((wrapper.find('input[placeholder="2026"]').element as HTMLInputElement).value).toBe('')
     expect(wrapper.text()).toContain('Changes save automatically in this browser.')
     wrapper.unmount()
+  })
+
+  it('preserves manual HTML when form values change and asks before replacing it', async () => {
+    const wrapper = mount(App)
+    const textarea = wrapper.find('textarea[aria-label="Editable specifications HTML"]')
+    await wrapper.find('input[placeholder="2026"]').setValue('2026')
+    expect((textarea.element as HTMLTextAreaElement).value).toContain('2026')
+
+    const manualHtml = '<p><strong>Editor adjustment</strong></p>'
+    await textarea.setValue(manualHtml)
+
+    expect(wrapper.find('iframe').attributes('sandbox')).toBe('')
+    expect(wrapper.find('iframe').attributes('srcdoc')).toContain(manualHtml)
+    expect(wrapper.text()).toContain('Manual edits are preserved.')
+
+    await wrapper.find('input[placeholder="2026"]').setValue('2025')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe(manualHtml)
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await wrapper.find('button.regenerate-button').trigger('click')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe(manualHtml)
+
+    confirm.mockReturnValue(true)
+    await wrapper.find('button.regenerate-button').trigger('click')
+    expect(confirm).toHaveBeenCalledTimes(2)
+    expect((textarea.element as HTMLTextAreaElement).value).toContain('2025')
+    expect(wrapper.text()).not.toContain('Manual edits are preserved.')
+    wrapper.unmount()
+  })
+
+  it('copies the edited HTML and restores manual source edits from the saved draft', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    const wrapper = mount(App)
+    const manualHtml = '<p>Ready to paste</p>'
+    await wrapper.find('textarea[aria-label="Editable specifications HTML"]').setValue(manualHtml)
+    await wrapper.find('button.copy-button').trigger('click')
+    expect(writeText).toHaveBeenCalledWith(manualHtml)
+
+    await vi.waitFor(() => {
+      const saved = window.localStorage.getItem(panelDraftStorageKey)
+      expect(saved).not.toBeNull()
+      const draft = JSON.parse(saved ?? '{}') as { htmlOverride?: string }
+      expect(draft.htmlOverride).toBe(manualHtml)
+    }, { timeout: 1500 })
+    wrapper.unmount()
+
+    const restored = mount(App)
+    expect((restored.find('textarea[aria-label="Editable specifications HTML"]')
+      .element as HTMLTextAreaElement).value).toBe(manualHtml)
+    expect(restored.text()).toContain('Manual edits are preserved.')
+    restored.unmount()
   })
 })
